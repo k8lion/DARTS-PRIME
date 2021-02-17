@@ -108,6 +108,7 @@ def main():
   for epoch in range(args.epochs):
     scheduler.step()
     lr = scheduler.get_lr()[0]
+
     logging.info('epoch %d lr %e', epoch, lr)
 
     genotype = model.genotype()
@@ -172,21 +173,22 @@ def infer(valid_queue, model, criterion):
   top5 = utils.AvgrageMeter()
   model.eval()
 
-  for step, (input, target) in enumerate(valid_queue):
-    input = Variable(input, volatile=True).cuda(non_blocking=True)
-    target = Variable(target, volatile=True).cuda(non_blocking=True)
+  with torch.no_grad():
+    for step, (input, target) in enumerate(valid_queue):
+      input = Variable(input).cuda(non_blocking=True)
+      target = Variable(target).cuda(non_blocking=True)
 
-    logits = model(input)
-    loss = criterion(logits, target)
+      logits = model(input)
+      loss = criterion(logits, target)
 
-    prec1 = utils.accuracy(logits, target, topk=(1, 5))
-    n = input.size(0)
-    objs.update(loss.item(), n)
-    top1.update(prec1[0].item(), n)
-    #top5.update(prec5.data[0], n)
+      prec1 = utils.accuracy(logits, target, topk=(1, 5))
+      n = input.size(0)
+      objs.update(loss.item(), n)
+      top1.update(prec1[0].item(), n)
+      #top5.update(prec5.data[0], n)
 
-    if step % args.report_freq == 0:
-      logging.info('valid %03d %e %f', step, objs.avg, top1.avg)
+      if step % args.report_freq == 0:
+        logging.info('valid %03d %e %f', step, objs.avg, top1.avg)
 
   return top1.avg, objs.avg
 
