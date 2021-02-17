@@ -121,8 +121,8 @@ class Network(nn.Module):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
         num_ops = len(ADMMPRIMITIVES)
 
-        self.alphas_normal = Variable((torch.atanh(1 / num_ops + 1e-3 * torch.randn(k, num_ops))).cuda(), requires_grad=True)
-        self.alphas_reduce = Variable((torch.atanh(1 / num_ops + 1e-3 * torch.randn(k, num_ops))).cuda(), requires_grad=True)
+        self.alphas_normal = Variable((1 / num_ops + 1e-3 * torch.randn(k, num_ops)).cuda(), requires_grad=True)
+        self.alphas_reduce = Variable((1 / num_ops + 1e-3 * torch.randn(k, num_ops)).cuda(), requires_grad=True)
         self._arch_parameters = [
             self.alphas_normal,
             self.alphas_reduce,
