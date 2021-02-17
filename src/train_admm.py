@@ -126,6 +126,9 @@ def main():
         valid_acc, valid_obj = infer(valid_queue, model, criterion)
         logging.info('valid_acc %f', valid_acc)
 
+        model.update_Z()
+        model.update_U()
+
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
 

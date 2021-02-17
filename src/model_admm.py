@@ -136,30 +136,33 @@ class Network(nn.Module):
     def arch_parameters(self):
         return self._arch_parameters
 
+    def _parse(self, weights):
+        gene = []
+        z = torch.zeros_like(weights).cpu()
+        wnp = weights.numpy()
+        n = 2
+        start = 0
+        for i in range(self._steps):
+            end = start + n
+            W = wnp[start:end].copy()
+            edges = sorted(range(i + 2),
+                           key=lambda x: -max(W[x][k] for k in range(len(W[x]))))[
+                    :2]
+            for j in edges:
+                k_best = None
+                for k in range(len(W[j])):
+                    if k_best is None or W[j][k] > W[j][k_best]:
+                        k_best = k
+                gene.append((ADMMPRIMITIVES[k_best], j))
+                z[j+start, k_best] = 1.0
+            start = end
+            n += 1
+        return gene, z
+
     def genotype(self):
 
-        def _parse(weights):
-            gene = []
-            n = 2
-            start = 0
-            for i in range(self._steps):
-                end = start + n
-                W = weights[start:end].copy()
-                edges = sorted(range(i + 2),
-                               key=lambda x: -max(W[x][k] for k in range(len(W[x]))))[
-                        :2]
-                for j in edges:
-                    k_best = None
-                    for k in range(len(W[j])):
-                        if k_best is None or W[j][k] > W[j][k_best]:
-                            k_best = k
-                    gene.append((ADMMPRIMITIVES[k_best], j))
-                start = end
-                n += 1
-            return gene
-
-        gene_normal = _parse(F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy())
-        gene_reduce = _parse(F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy())
+        gene_normal, _ = self._parse(torch.tanh(self.alphas_normal).data.cpu())
+        gene_reduce, _ = self._parse(torch.tanh(self.alphas_reduce).data.cpu())
 
         concat = range(2 + self._steps - self._multiplier, self._steps + 2)
         genotype = Genotype(
@@ -186,4 +189,23 @@ class Network(nn.Module):
         for param in self._arch_parameters:
             self.Z += (param.detach().cpu().clone(),)
             self.U += (torch.zeros_like(param).cpu(),)
+
+    def update_Z(self):
+        new_Z = ()
+        idx = 0
+        for x, u in zip(self._arch_parameters, self.U):
+            _, z = self._parse(torch.tanh(x.detach().cpu().clone() + u).data.cpu().numpy())
+            new_Z += (z,)
+            idx += 1
+        self.Z = new_Z
+        print(self.Z)
+
+
+    def update_U(self):
+        new_U = ()
+        for u, x, z in zip(self.U, self._arch_parameters, self.Z):
+            new_u = u + x.detach().cpu().clone() - z
+            new_U += (new_u,)
+        self.U = new_U
+        print(self.U)
 
