@@ -122,3 +122,5 @@ dataset/
 .idea/
 img/
 .gitignore
+exp/
+slurm/
