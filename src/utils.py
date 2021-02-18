@@ -117,7 +117,6 @@ def get_dir():
         dir = ""
     return dir
 
-
 def create_exp_dir(path, scripts_to_save=None):
     path = os.path.join(get_dir(), path)
     if not os.path.exists(path):
