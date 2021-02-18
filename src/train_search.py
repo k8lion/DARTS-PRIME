@@ -42,7 +42,7 @@ parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='lear
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
 args = parser.parse_args()
 
-args.save = 'exp/search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
+args.save = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'

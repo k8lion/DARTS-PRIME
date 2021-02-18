@@ -43,7 +43,7 @@ parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weigh
 parser.add_argument('--rho', type=float, default=1e-3, help='admm parameter')
 args = parser.parse_args()
 
-args.save = path = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(), 'exp/admm-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
