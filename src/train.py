@@ -17,7 +17,7 @@ from torch.autograd import Variable
 from model import NetworkCIFAR as Network
 
 parser = argparse.ArgumentParser("cifar")
-parser.add_argument('--data', type=str, default='../data', help='location of the data corpus')
+parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
 parser.add_argument('--batch_size', type=int, default=96, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.025, help='init learning rate')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
@@ -39,7 +39,7 @@ parser.add_argument('--arch', type=str, default='DARTS', help='which architectur
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 args = parser.parse_args()
 
-args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
+args.save = os.path.join(utils.get_dir(), 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -82,8 +82,9 @@ def main():
     )
 
     train_transform, valid_transform = utils._data_transforms_cifar10(args)
-    train_data = dset.CIFAR10(root=args.data, train=True, download=True, transform=train_transform)
-    valid_data = dset.CIFAR10(root=args.data, train=False, download=True, transform=valid_transform)
+    datapath = os.path.join(utils.get_dir(), args.data)
+    train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+    valid_data = dset.CIFAR10(root=datapath, train=False, download=True, transform=valid_transform)
 
     train_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=2)
@@ -110,12 +111,11 @@ def main():
 def train(train_queue, model, criterion, optimizer):
     objs = utils.AvgrageMeter()
     top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
     model.train()
 
     for step, (input, target) in enumerate(train_queue):
         input = Variable(input).cuda()
-        target = Variable(target).cuda(async=True)
+        target = Variable(target).cuda(non_blocking=True)
 
         optimizer.zero_grad()
         logits, logits_aux = model(input)
@@ -127,14 +127,13 @@ def train(train_queue, model, criterion, optimizer):
         nn.utils.clip_grad_norm(model.parameters(), args.grad_clip)
         optimizer.step()
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
+        prec1 = utils.accuracy(logits, target, topk=(1, ))
         n = input.size(0)
-        objs.update(loss.data[0], n)
-        top1.update(prec1.data[0], n)
-        top5.update(prec5.data[0], n)
+        objs.update(loss.item(), n)
+        top1.update(prec1[0].item(), n)
 
         if step % args.report_freq == 0:
-            logging.info('train %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
+            logging.info('train %03d %e %f %f', step, objs.avg, top1.avg)
 
     return top1.avg, objs.avg
 
@@ -142,24 +141,22 @@ def train(train_queue, model, criterion, optimizer):
 def infer(valid_queue, model, criterion):
     objs = utils.AvgrageMeter()
     top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
     model.eval()
 
     for step, (input, target) in enumerate(valid_queue):
         input = Variable(input, volatile=True).cuda()
-        target = Variable(target, volatile=True).cuda(async=True)
+        target = Variable(target, volatile=True).cuda(non_blocking=True)
 
         logits, _ = model(input)
         loss = criterion(logits, target)
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
+        prec1 = utils.accuracy(logits, target, topk=(1, ))
         n = input.size(0)
-        objs.update(loss.data[0], n)
-        top1.update(prec1.data[0], n)
-        top5.update(prec5.data[0], n)
+        objs.update(loss.item(), n)
+        top1.update(prec1[0].item(), n)
 
         if step % args.report_freq == 0:
-            logging.info('valid %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
+            logging.info('valid %03d %e %f %f', step, objs.avg, top1.avg)
 
     return top1.avg, objs.avg
 
