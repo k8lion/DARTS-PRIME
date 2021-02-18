@@ -124,7 +124,7 @@ def train(train_queue, model, criterion, optimizer):
             loss_aux = criterion(logits_aux, target)
             loss += args.auxiliary_weight * loss_aux
         loss.backward()
-        nn.utils.clip_grad_norm(model.parameters(), args.grad_clip)
+        nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
 
         prec1 = utils.accuracy(logits, target, topk=(1, ))
@@ -133,7 +133,7 @@ def train(train_queue, model, criterion, optimizer):
         top1.update(prec1[0].item(), n)
 
         if step % args.report_freq == 0:
-            logging.info('train %03d %e %f %f', step, objs.avg, top1.avg)
+            logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
     return top1.avg, objs.avg
 
@@ -143,20 +143,21 @@ def infer(valid_queue, model, criterion):
     top1 = utils.AvgrageMeter()
     model.eval()
 
-    for step, (input, target) in enumerate(valid_queue):
-        input = Variable(input, volatile=True).cuda()
-        target = Variable(target, volatile=True).cuda(non_blocking=True)
+    with torch.no_grad():
+        for step, (input, target) in enumerate(valid_queue):
+            input = Variable(input).cuda()
+            target = Variable(target).cuda(non_blocking=True)
 
-        logits, _ = model(input)
-        loss = criterion(logits, target)
+            logits, _ = model(input)
+            loss = criterion(logits, target)
 
-        prec1 = utils.accuracy(logits, target, topk=(1, ))
-        n = input.size(0)
-        objs.update(loss.item(), n)
-        top1.update(prec1[0].item(), n)
+            prec1 = utils.accuracy(logits, target, topk=(1, ))
+            n = input.size(0)
+            objs.update(loss.item(), n)
+            top1.update(prec1[0].item(), n)
 
-        if step % args.report_freq == 0:
-            logging.info('valid %03d %e %f %f', step, objs.avg, top1.avg)
+            if step % args.report_freq == 0:
+                logging.info('valid %03d %e %f', step, objs.avg, top1.avg)
 
     return top1.avg, objs.avg
 
