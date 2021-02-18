@@ -108,8 +108,18 @@ def drop_path(x, drop_prob):
         x.mul_(mask)
     return x
 
+def get_dir():
+    if os.path.exists("/tmpdir/maile/pydnas/"):
+        dir = "/tmpdir/maile/pydnas/"
+    elif os.path.exists("/projets/reva/kmaile/pydnas/"):
+        dir = "/projets/reva/kmaile/pydnas/"
+    else:
+        dir = ""
+    return dir
+
 
 def create_exp_dir(path, scripts_to_save=None):
+    path = os.path.join(get_dir(), path)
     if not os.path.exists(path):
         os.mkdir(path)
     print('Experiment dir : {}'.format(path))
