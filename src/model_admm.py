@@ -105,9 +105,9 @@ class Network(nn.Module):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
             if cell.reduction:
-                weights = F.tanh(self.alphas_reduce)
+                weights = torch.tanh(self.alphas_reduce)
             else:
-                weights = F.tanh(self.alphas_normal)
+                weights = torch.tanh(self.alphas_normal)
             s0, s1 = s1, cell(s0, s1, weights)
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
