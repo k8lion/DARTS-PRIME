@@ -68,7 +68,7 @@ def main():
 
     criterion = nn.MSELoss()
     criterion = criterion.cuda()
-    model = Network(args.init_channels, 1, args.layers, criterion, input_channels=4)
+    model = Network(args.init_channels, 1, args.layers, criterion, input_channels=3)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -114,20 +114,16 @@ def main():
         print(F.softmax(model.alphas_reduce, dim=-1))
 
         # training
-        train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
-        logging.info('train_acc %f', train_acc)
+        _ = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
 
         # validation
-        valid_acc, valid_obj = infer(valid_queue, model, criterion)
-        logging.info('valid_acc %f', valid_acc)
+        _ = infer(valid_queue, model, criterion)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
     objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
 
     valid_iter = iter(valid_queue)
     for step, (input, target) in enumerate(train_queue):
@@ -135,12 +131,12 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         n = input.size(0)
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
-        target = Variable(target, requires_grad=False).cuda(non_blocking=True)
+        target = Variable(torch.squeeze(target.float()), requires_grad=False).cuda(non_blocking=True)
 
         # get a random minibatch from the search queue with replacement
         input_search, target_search = next(valid_iter)
         input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
-        target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
+        target_search = Variable(torch.squeeze(target_search.float()), requires_grad=False).cuda(non_blocking=True)
 
         architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
 
@@ -152,28 +148,22 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
 
-        # prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
-        prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
-        top1.update(prec1[0].item(), n)
-        # top5.update(prec5.data[0], n)
 
         if step % args.report_freq == 0:
-            logging.info('train %03d %e %f', step, objs.avg, top1.avg)
+            logging.info('train %03d %e', step, objs.avg)
 
-    return top1.avg, objs.avg
+    return objs.avg
 
 
 def infer(valid_queue, model, criterion):
     objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
     model.eval()
 
     with torch.no_grad():
         for step, (input, target) in enumerate(valid_queue):
             input = Variable(input).cuda(non_blocking=True)
-            target = Variable(target).cuda(non_blocking=True)
+            target = Variable(torch.squeeze(target.float())).cuda(non_blocking=True)
 
             logits = model(input)
             loss = criterion(logits, target)
@@ -181,13 +171,11 @@ def infer(valid_queue, model, criterion):
             prec1 = utils.accuracy(logits, target, topk=(1, 5))
             n = input.size(0)
             objs.update(loss.item(), n)
-            top1.update(prec1[0].item(), n)
-            # top5.update(prec5.data[0], n)
 
             if step % args.report_freq == 0:
-                logging.info('valid %03d %e %f', step, objs.avg, top1.avg)
+                logging.info('valid %03d %e', step, objs.avg)
 
-    return top1.avg, objs.avg
+    return objs.avg
 
 
 if __name__ == '__main__':

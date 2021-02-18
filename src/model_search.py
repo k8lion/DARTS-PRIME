@@ -57,6 +57,21 @@ class Cell(nn.Module):
         return torch.cat(states[-self._multiplier:], dim=1)
 
 
+class DenseTail(nn.Module):
+    def __init__(self, in_channels, depth=1):
+        super(DenseTail, self).__init__()
+        self.layers = nn.ModuleList()
+        for i in range(depth-1):
+            self.layers.append(nn.Linear(in_channels, in_channels))
+        self.layers.append(nn.Linear(in_channels, 1))
+        print(self.layers)
+
+    def forward(self, input):
+        out = input
+        for layer in self.layers:
+            out = layer(out)
+        return out
+
 class Network(nn.Module):
 
     def __init__(self, C, num_classes, layers, criterion, steps=4, multiplier=4, stem_multiplier=3, input_channels=3):
@@ -89,7 +104,10 @@ class Network(nn.Module):
             C_prev_prev, C_prev = C_prev, multiplier * C_curr
 
         self.global_pooling = nn.AdaptiveAvgPool2d(1)
-        self.classifier = nn.Linear(C_prev, num_classes)
+        if num_classes != 1:
+            self.output_module = nn.Linear(C_prev, num_classes)
+        else:
+            self.output_module = DenseTail(C_prev, depth=3)
 
         self._initialize_alphas()
 
@@ -108,8 +126,8 @@ class Network(nn.Module):
                 weights = F.softmax(self.alphas_normal, dim=-1)
             s0, s1 = s1, cell(s0, s1, weights)
         out = self.global_pooling(s1)
-        logits = self.classifier(out.view(out.size(0), -1))
-        return logits
+        logits = self.output_module(out.view(out.size(0), -1))
+        return logits.squeeze()
 
     def _loss(self, input, target):
         logits = self(input)
