@@ -194,7 +194,7 @@ class Network(nn.Module):
         new_Z = ()
         idx = 0
         for x, u in zip(self._arch_parameters, self.U):
-            _, z = self._parse(torch.tanh(x.detach().cpu().clone() + u).data.cpu().numpy())
+            _, z = self._parse(torch.tanh(x.detach().cpu().clone() + u).data.cpu())
             new_Z += (z,)
             idx += 1
         self.Z = new_Z
