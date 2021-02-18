@@ -203,8 +203,8 @@ class Network(nn.Module):
             _, z = self._parse(torch.tanh(x.detach().cpu().clone() + u).data.cpu())
             new_Z += (z,)
             idx += 1
+            print(z)
         self.Z = new_Z
-        print(self.Z)
 
 
     def update_U(self):
@@ -212,6 +212,6 @@ class Network(nn.Module):
         for u, x, z in zip(self.U, self._arch_parameters, self.Z):
             new_u = u + x.detach().cpu().clone() - z
             new_U += (new_u,)
+            print(new_u)
         self.U = new_U
-        print(self.U)
 
