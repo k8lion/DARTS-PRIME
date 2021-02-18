@@ -116,8 +116,8 @@ def main():
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
 
-        print(F.tanh(model.alphas_normal))
-        print(F.tanh(model.alphas_reduce))
+        print(torch.relu(model.alphas_normal).tanh())
+        print(torch.relu(model.alphas_reduce).tanh())
 
         # training
         train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
