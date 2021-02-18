@@ -1,4 +1,3 @@
-import torch.nn.functional as F
 from torch.autograd import Variable
 
 
@@ -105,9 +104,9 @@ class Network(nn.Module):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
             if cell.reduction:
-                weights = torch.tanh(self.alphas_reduce)
+                weights = torch.relu(self.alphas_reduce).tanh()
             else:
-                weights = torch.tanh(self.alphas_normal)
+                weights = torch.relu(self.alphas_normal).tanh()
             s0, s1 = s1, cell(s0, s1, weights)
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
@@ -127,11 +126,18 @@ class Network(nn.Module):
             self.alphas_normal,
             self.alphas_reduce,
         ]
+        self._arch_mask = [
+            torch.ones_like(self.alphas_normal),
+            torch.ones_like(self.alphas_reduce),
+        ]
+        self.mask_alphas()
 
     def mask_alphas(self):
         with torch.no_grad():
-            for param in self._arch_parameters:
-                param[param <= 0] = -float("inf")
+            for param, mask in zip(self._arch_parameters, self._arch_mask):
+                mask[param <= 0.0] = 0.0
+                param[param <= 0.0] = 0.0
+                param.mul_(mask)
 
     def arch_parameters(self):
         return self._arch_parameters
