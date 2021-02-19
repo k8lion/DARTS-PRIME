@@ -165,14 +165,21 @@ def save_file(recoder, size = (14, 8), path='./'):
     fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
     for (k, v) in recoder.items():
         outin = k[k.find("(")+1:k.find(")")].split(", ")
+        print(int(outin[1]), int(outin[0]))
+    print(axs)
+    for (k, v) in recoder.items():
+        outin = k[k.find("(")+1:k.find(")")].split(", ")
         src = int(outin[1])-2
         dest = int(outin[0])
-        if dest == 4:
-            axs[src + 2, dest].set_xlabel(str(dest))
         if src == -2:
-            axs[src + 2, dest].set_ylabel(str(src))
+            axs[dest, src + 2].set_ylabel(str(dest))
+        if dest == 4:
+            axs[dest, src + 2].set_xlabel(str(src))
         op = k.split("op: ")[1]
-        axs[src+2, dest].plot(v, '+', label=op, color=COLORMAP[op])
+        axs[dest, src+2].plot(v, label=op, color=COLORMAP[op])
+    for i in range(0, 3):
+        for j in range(2+i, 5):
+            axs[i, j].axis("off")
     handles, labels = axs[1, 1].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper right")
     fig.savefig(os.path.join(path, 'output_new.png'), bbox_inches='tight')
