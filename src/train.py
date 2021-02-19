@@ -39,7 +39,7 @@ parser.add_argument('--arch', type=str, default='DARTS', help='which architectur
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(), 'exp/eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -96,7 +96,7 @@ def main():
 
     for epoch in range(args.epochs):
         scheduler.step()
-        logging.info('epoch %d lr %e', epoch, scheduler.get_lr()[0])
+        logging.info('epoch %d lr %e', epoch, scheduler.get_last_lr()[0])
         model.drop_path_prob = args.drop_path_prob * epoch / args.epochs
 
         train_acc, train_obj = train(train_queue, model, criterion, optimizer)

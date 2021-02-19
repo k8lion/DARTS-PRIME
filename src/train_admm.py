@@ -109,7 +109,7 @@ def main():
 
     for epoch in range(args.epochs):
         scheduler.step()
-        lr = scheduler.get_lr()[0]
+        lr = scheduler.get_last_lr()[0]
 
         logging.info('epoch %d lr %e', epoch, lr)
 
