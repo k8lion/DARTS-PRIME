@@ -116,14 +116,6 @@ def main():
         print(F.softmax(model.alphas_normal, dim=-1))
         print(F.softmax(model.alphas_reduce, dim=-1))
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
-
-        np.save(os.path.join(args.save, 'normal_weight.npy'),
-                F.softmax(model.alphas_normal, dim=-1).data.cpu().numpy())
-        np.save(os.path.join(args.save, 'reduce_weight.npy'),
-                F.softmax(model.alphas_reduce, dim=-1).data.cpu().numpy())
-
         # training
         train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
         logging.info('train_acc %f', train_acc)
@@ -131,6 +123,8 @@ def main():
         # validation
         valid_acc, valid_obj = infer(valid_queue, model, criterion)
         logging.info('valid_acc %f', valid_acc)
+
+        model.update_history()
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 

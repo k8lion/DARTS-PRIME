@@ -159,6 +159,7 @@ class Network(nn.Module):
                 node_id += 1
             else:
                 mm += 1
+        self.update_history()
 
     def arch_parameters(self):
         return self._arch_parameters

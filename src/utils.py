@@ -165,15 +165,11 @@ def save_file(recoder, size = (14, 8), path='./'):
     fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
     for (k, v) in recoder.items():
         outin = k[k.find("(")+1:k.find(")")].split(", ")
-        print(int(outin[1]), int(outin[0]))
-    print(axs)
-    for (k, v) in recoder.items():
-        outin = k[k.find("(")+1:k.find(")")].split(", ")
         src = int(outin[1])-2
         dest = int(outin[0])
         if src == -2:
             axs[dest, src + 2].set_ylabel(str(dest))
-        if dest == 4:
+        if dest == 3:
             axs[dest, src + 2].set_xlabel(str(src))
         op = k.split("op: ")[1]
         axs[dest, src+2].plot(v, label=op, color=COLORMAP[op])
@@ -184,6 +180,8 @@ def save_file(recoder, size = (14, 8), path='./'):
     fig.legend(handles, labels, loc="upper right")
     fig.savefig(os.path.join(path, 'output_new.png'), bbox_inches='tight')
     print('save history weight in {}'.format(os.path.join(path, 'output.png')))
+    plt.close("all")
     with open(os.path.join(path, 'history_weight.json'), 'w') as outf:
         json.dump(recoder, outf)
         print('save history weight in {}'.format(os.path.join(path, 'history_weight.json')))
+
