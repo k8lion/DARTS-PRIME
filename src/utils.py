@@ -5,7 +5,8 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-import torch.nn.functional as F
+import matplotlib.pyplot as plt
+import json
 
 
 class AvgrageMeter(object):
@@ -129,3 +130,53 @@ def create_exp_dir(path, scripts_to_save=None):
             dst_file = os.path.join(path, 'scripts', os.path.basename(script))
             shutil.copyfile(script, dst_file)
 
+
+blue = plt.get_cmap("Blues")
+orange = plt.get_cmap("Oranges")
+grey = plt.get_cmap("Greys")
+COLORMAP = {
+    'none': grey(0.8),
+    'max_pool_3x3': orange(0.6),
+    'avg_pool_3x3': orange(0.3),
+    'skip_connect': grey(0.5),
+    'sep_conv_3x3': blue(0.3),
+    'sep_conv_5x5': blue(0.5),
+    'dil_conv_3x3': blue(0.7),
+    'dil_conv_5x5': blue(0.9)
+}
+
+
+def save_file(recoder, size = (14, 8), path='./'):
+    fig, axs = plt.subplots(*size, figsize=(36, 98))
+    num_ops = size[1]
+    row = 0
+    col = 0
+    for (k, v) in recoder.items():
+        axs[row, col].set_title(k)
+        axs[row, col].plot(v, 'r+')
+        if col == num_ops-1:
+            col = 0
+            row += 1
+        else:
+            col += 1
+    if not os.path.exists(path):
+        os.makedirs(path)
+    fig.savefig(os.path.join(path, 'output_old.png'), bbox_inches='tight')
+    fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
+    for (k, v) in recoder.items():
+        outin = k[k.find("(")+1:k.find(")")].split(", ")
+        src = int(outin[1])-2
+        dest = int(outin[0])
+        if dest == 4:
+            axs[src + 2, dest].set_xlabel(str(dest))
+        if src == -2:
+            axs[src + 2, dest].set_ylabel(str(src))
+        op = k.split("op: ")[1]
+        axs[src+2, dest].plot(v, '+', label=op, color=COLORMAP[op])
+    handles, labels = axs[1, 1].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="upper right")
+    fig.savefig(os.path.join(path, 'output_new.png'), bbox_inches='tight')
+    print('save history weight in {}'.format(os.path.join(path, 'output.png')))
+    with open(os.path.join(path, 'history_weight.json'), 'w') as outf:
+        json.dump(recoder, outf)
+        print('save history weight in {}'.format(os.path.join(path, 'history_weight.json')))

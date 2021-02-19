@@ -106,7 +106,7 @@ def main():
 
     for epoch in range(args.epochs):
         scheduler.step()
-        lr = scheduler.get_lr()[0]
+        lr = scheduler.get_last_lr()[0]
 
         logging.info('epoch %d lr %e', epoch, lr)
 
@@ -115,6 +115,14 @@ def main():
 
         print(F.softmax(model.alphas_normal, dim=-1))
         print(F.softmax(model.alphas_reduce, dim=-1))
+
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+
+        np.save(os.path.join(args.save, 'normal_weight.npy'),
+                F.softmax(model.alphas_normal, dim=-1).data.cpu().numpy())
+        np.save(os.path.join(args.save, 'reduce_weight.npy'),
+                F.softmax(model.alphas_reduce, dim=-1).data.cpu().numpy())
 
         # training
         train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
@@ -125,6 +133,17 @@ def main():
         logging.info('valid_acc %f', valid_acc)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
+
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+
+    print(F.softmax(model.alphas_normal, dim=-1))
+    print(F.softmax(model.alphas_reduce, dim=-1))
+
+    np.save(os.path.join(os.path.join(args.save, 'normal_weight.npy')),
+            F.softmax(model.alphas_normal, dim=-1).data.cpu().numpy())
+    np.save(os.path.join(os.path.join(args.save, 'reduce_weight.npy')),
+            F.softmax(model.alphas_reduce, dim=-1).data.cpu().numpy())
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
@@ -170,7 +189,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
 def infer(valid_queue, model, criterion):
     objs = utils.AvgrageMeter()
     top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
     model.eval()
 
     with torch.no_grad():
@@ -181,11 +199,10 @@ def infer(valid_queue, model, criterion):
             logits = model(input)
             loss = criterion(logits, target)
 
-            prec1 = utils.accuracy(logits, target, topk=(1, 5))
+            prec1 = utils.accuracy(logits, target, topk=(1, ))
             n = input.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1[0].item(), n)
-            # top5.update(prec5.data[0], n)
 
             if step % args.report_freq == 0:
                 logging.info('valid %03d %e %f', step, objs.avg, top1.avg)

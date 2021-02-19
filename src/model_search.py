@@ -144,6 +144,22 @@ class Network(nn.Module):
             self.alphas_reduce,
         ]
 
+        self.alphas_normal_history = {}
+        self.alphas_reduce_history = {}
+        mm = 0
+        last_id = 1
+        node_id = 0
+        for i in range(k):
+            for j in range(num_ops):
+                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), PRIMITIVES[j])] = []
+                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), PRIMITIVES[j])] = []
+            if mm == last_id:
+                mm = 0
+                last_id += 1
+                node_id += 1
+            else:
+                mm += 1
+
     def arch_parameters(self):
         return self._arch_parameters
 
@@ -179,3 +195,33 @@ class Network(nn.Module):
             reduce=gene_reduce, reduce_concat=concat
         )
         return genotype
+
+    def states(self):
+        return {
+          'alphas_normal': self.alphas_normal,
+          'alphas_reduce': self.alphas_reduce,
+          'alphas_normal_history': self.alphas_normal_history,
+          'alphas_reduce_history': self.alphas_reduce_history,
+          'criterion': self._criterion
+        }
+
+    def update_history(self):
+        mm = 0
+        last_id = 1
+        node_id = 0
+        normal = F.softmax(self.alphas_normal, dim=-1).data.cpu().numpy()
+        reduce = F.softmax(self.alphas_reduce, dim=-1).data.cpu().numpy()
+
+        k, num_ops = normal.shape
+        for i in range(k):
+            for j in range(num_ops):
+                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), PRIMITIVES[j])].append(
+                    float(normal[i][j]))
+                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), PRIMITIVES[j])].append(
+                    float(reduce[i][j]))
+            if mm == last_id:
+                mm = 0
+                last_id += 1
+                node_id += 1
+            else:
+                mm += 1
