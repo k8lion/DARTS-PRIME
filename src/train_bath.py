@@ -80,19 +80,21 @@ def main():
 
     train_transform, valid_transform = utils._data_transforms_cifar10(args)
     datapath = os.path.join(utils.get_dir(), args.data)
-    train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+    #train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+    guyane = utils.BathymetryDataset("datasets_guyane_stlouis/guyane/guyane.csv")
+    stl = utils.BathymetryDataset("datasets_guyane_stlouis/saint_louis/saint_louis.csv")
 
-    num_train = len(train_data)
+    num_train = len(guyane)
     indices = list(range(num_train))
     split = int(np.floor(args.train_portion * num_train))
 
     train_queue = torch.utils.data.DataLoader(
-        train_data, batch_size=args.batch_size,
+        guyane, batch_size=args.batch_size,
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[:split]),
         pin_memory=True, num_workers=2)
 
     valid_queue = torch.utils.data.DataLoader(
-        train_data, batch_size=args.batch_size,
+        guyane, batch_size=args.batch_size,
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
         pin_memory=True, num_workers=2)
 
