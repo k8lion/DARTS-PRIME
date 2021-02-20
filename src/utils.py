@@ -2,8 +2,10 @@ import os
 import shutil
 
 import numpy as np
+import pandas as pd
 import torch
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import json
@@ -146,22 +148,10 @@ COLORMAP = {
 }
 
 
-def save_file(recoder, size = (14, 8), path='./'):
-    fig, axs = plt.subplots(*size, figsize=(36, 98))
-    num_ops = size[1]
-    row = 0
-    col = 0
-    for (k, v) in recoder.items():
-        axs[row, col].set_title(k)
-        axs[row, col].plot(v, 'r+')
-        if col == num_ops-1:
-            col = 0
-            row += 1
-        else:
-            col += 1
+def save_file(recoder, path='./'):
     if not os.path.exists(path):
         os.makedirs(path)
-    fig.savefig(os.path.join(path, 'output_old.png'), bbox_inches='tight')
+    has_none = False
     fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
     for (k, v) in recoder.items():
         outin = k[k.find("(")+1:k.find(")")].split(", ")
@@ -173,15 +163,78 @@ def save_file(recoder, size = (14, 8), path='./'):
             axs[dest, src + 2].set_xlabel(str(src))
         op = k.split("op: ")[1]
         axs[dest, src+2].plot(v, label=op, color=COLORMAP[op])
+        if "none" in op:
+            has_none = True
     for i in range(0, 3):
         for j in range(2+i, 5):
             axs[i, j].axis("off")
     handles, labels = axs[1, 1].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper right")
-    fig.savefig(os.path.join(path, 'output_new.png'), bbox_inches='tight')
-    print('save history weight in {}'.format(os.path.join(path, 'output.png')))
-    plt.close("all")
+    fig.savefig(os.path.join(path, 'alphahistory.png'), bbox_inches='tight')
+    print('save history weight in {}'.format(os.path.join(path, 'alphahistory.png')))
+    plt.close()
+    if has_none:
+        fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
+        for (k, v) in recoder.items():
+            op = k.split("op: ")[1]
+            if "none" not in op:
+                outin = k[k.find("(") + 1:k.find(")")].split(", ")
+                src = int(outin[1]) - 2
+                dest = int(outin[0])
+                if src == -2:
+                    axs[dest, src + 2].set_ylabel(str(dest))
+                if dest == 3:
+                    axs[dest, src + 2].set_xlabel(str(src))
+                axs[dest, src + 2].plot(v, label=op, color=COLORMAP[op])
+        for i in range(0, 3):
+            for j in range(2 + i, 5):
+                axs[i, j].axis("off")
+        handles, labels = axs[1, 1].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="upper right")
+        fig.savefig(os.path.join(path, 'alphahistory-none.png'), bbox_inches='tight')
+        print('save history weight without nones in {}'.format(os.path.join(path, 'alphahistory-none.png')))
+        plt.close()
+
     with open(os.path.join(path, 'history_weight.json'), 'w') as outf:
         json.dump(recoder, outf)
         print('save history weight in {}'.format(os.path.join(path, 'history_weight.json')))
 
+
+class BathymetryDataset(Dataset):
+    def __init__(self, csv_file, root_dir="dataset/bathymetry", transform=None):
+        """
+        Args:
+            csv_file (string): Path to the csv file with paths and labels.
+            root_dir (string): Directory for relative paths
+            transform (callable, optional): Optional transform to be applied
+                on a sample.
+        """
+        self.csv_data = pd.read_csv(csv_file)
+        self.csv_data[0] = self.csv_data[0].str.replace("/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
+        self.root_dir = os.path.join(get_dir(), root_dir)
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.csv_data)
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        img_path = os.path.join(self.root_dir,
+                                self.csv_data.iloc[idx, 0])
+
+        if not img_path.endswith('.npy'):
+            image = np.load(f'{img_path}.npy')
+        else:
+            image = np.load(img_path)
+
+        depth = self.csv_data.iloc[idx, 1]
+        sample = {'image': image, 'depth': depth}
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+
+#dataset/bathymetry/datasets_guyane_stlouis/
