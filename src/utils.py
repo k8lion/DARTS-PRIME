@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import json
+from sklearn.utils import resample
 
 
 class AvgrageMeter(object):
@@ -211,7 +212,6 @@ class BathymetryDataset(Dataset):
         """
         self.root_dir = os.path.join(get_dir(), root_dir)
         self.csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
-        print(self.csv_data)
         self.csv_data["Unnamed: 0"] = self.csv_data["Unnamed: 0"].str.replace("/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
         self.transform = transform
         self.lengths = [len(self.csv_data)]
@@ -222,13 +222,32 @@ class BathymetryDataset(Dataset):
             "/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
         self.csv_data = self.csv_data.append(new_csv_data)
         self.lengths.append(len(new_csv_data))
+        self.rebalance()
 
+    def rebalance(self):
+        max_length = max(self.lengths)
+        last_length = 0
+        new_lengths = []
+        new_data = []
+        for length in self.lengths:
+            csv_portion = self.csv_data[last_length:last_length+length]
+            if max_length-length > 0:
+                upsampled = resample(csv_portion, 
+                                     replace=True,     
+                                     n_samples=max_length-length,
+                                     random_state=torch.seed())
+                csv_portion = csv_portion.append(upsampled)
+            new_lengths.append(len(csv_portion))
+            new_data.append(csv_portion)
+            last_length += length
+        self.lengths = new_lengths
+        self.csv_data = pd.concat(new_data)
+        
     def get_subset_indices(self, split_ratio):
         trains = []
         vals = []
         last_length = 0
         for length in self.lengths:
-            print(length)
             indices = list(range(last_length, last_length+length))
             split = int(np.floor(split_ratio*length))
             trains.extend(indices[:split])

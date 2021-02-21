@@ -10,7 +10,6 @@ import argparse
 import torch.nn as nn
 import torch.utils
 import torch.nn.functional as F
-import torchvision.datasets as dset
 import torch.backends.cudnn as cudnn
 
 from torch.autograd import Variable
@@ -30,9 +29,6 @@ parser.add_argument('--epochs', type=int, default=50, help='num of training epoc
 parser.add_argument('--init_channels', type=int, default=16, help='num of init channels')
 parser.add_argument('--layers', type=int, default=8, help='total number of layers')
 parser.add_argument('--model_path', type=str, default='saved_models', help='path to save the model')
-parser.add_argument('--cutout', action='store_true', default=False, help='use cutout')
-parser.add_argument('--cutout_length', type=int, default=16, help='cutout length')
-parser.add_argument('--drop_path_prob', type=float, default=0.3, help='drop path probability')
 parser.add_argument('--save', type=str, default='EXP', help='experiment name')
 parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
@@ -138,7 +134,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         input = Variable(input.float(), requires_grad=False).cuda(non_blocking=True)
         target = Variable(target.float(), requires_grad=False).cuda(non_blocking=True)
 
-        # get a random minibatch from the search queue with replacement
         input_search, target_search = next(valid_iter)
         input_search = Variable(input_search.float(), requires_grad=False).cuda(non_blocking=True)
         target_search = Variable(target_search.float(), requires_grad=False).cuda(non_blocking=True)
@@ -167,8 +162,8 @@ def infer(valid_queue, model, criterion):
 
     with torch.no_grad():
         for step, (input, target) in enumerate(valid_queue):
-            input = Variable(input).cuda(non_blocking=True)
-            target = Variable(torch.squeeze(target.float())).cuda(non_blocking=True)
+            input = Variable(input.float()).cuda(non_blocking=True)
+            target = Variable(target.float()).cuda(non_blocking=True)
 
             logits = model(input)
             loss = criterion(logits, target)
