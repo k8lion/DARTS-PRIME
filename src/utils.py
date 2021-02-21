@@ -201,7 +201,7 @@ def save_file(recoder, path='./'):
 
 
 class BathymetryDataset(Dataset):
-    def __init__(self, csv_file, root_dir="dataset/bathymetry", transform=None):
+    def __init__(self, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis", transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with paths and labels.
@@ -209,10 +209,32 @@ class BathymetryDataset(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.csv_data = pd.read_csv(csv_file)
-        self.csv_data[0] = self.csv_data[0].str.replace("/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
         self.root_dir = os.path.join(get_dir(), root_dir)
+        self.csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
+        print(self.csv_data)
+        self.csv_data["Unnamed: 0"] = self.csv_data["Unnamed: 0"].str.replace("/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
         self.transform = transform
+        self.lengths = [len(self.csv_data)]
+
+    def add(self, csv_file):
+        new_csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
+        new_csv_data["Unnamed: 0"] = new_csv_data["Unnamed: 0"].str.replace(
+            "/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
+        self.csv_data = self.csv_data.append(new_csv_data)
+        self.lengths.append(len(new_csv_data))
+
+    def get_subset_indices(self, split_ratio):
+        trains = []
+        vals = []
+        last_length = 0
+        for length in self.lengths:
+            print(length)
+            indices = list(range(last_length, last_length+length))
+            split = int(np.floor(split_ratio*length))
+            trains.extend(indices[:split])
+            vals.extend(indices[split:])
+            last_length += length
+        return trains, vals
 
     def __len__(self):
         return len(self.csv_data)
@@ -228,9 +250,10 @@ class BathymetryDataset(Dataset):
             image = np.load(f'{img_path}.npy')
         else:
             image = np.load(img_path)
+        image = np.transpose(image, (2, 1, 0))
 
         depth = self.csv_data.iloc[idx, 1]
-        sample = {'image': image, 'depth': depth}
+        sample = (image, depth)
 
         if self.transform:
             sample = self.transform(sample)

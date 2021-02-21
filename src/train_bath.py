@@ -68,7 +68,7 @@ def main():
 
     criterion = nn.MSELoss()
     criterion = criterion.cuda()
-    model = Network(args.init_channels, 1, args.layers, criterion, input_channels=3)
+    model = Network(args.init_channels, 1, args.layers, criterion, input_channels=4)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -80,22 +80,25 @@ def main():
 
     train_transform, valid_transform = utils._data_transforms_cifar10(args)
     datapath = os.path.join(utils.get_dir(), args.data)
-    #train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
-    guyane = utils.BathymetryDataset("datasets_guyane_stlouis/guyane/guyane.csv")
-    stl = utils.BathymetryDataset("datasets_guyane_stlouis/saint_louis/saint_louis.csv")
+    # train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+    # guyane = utils.BathymetryDataset("guyane/guyane.csv")
+    # stl = utils.BathymetryDataset("saint_louis/saint_louis.csv")
+    dataset = utils.BathymetryDataset("guyane/guyane.csv")
+    dataset.add("saint_louis/saint_louis.csv")
 
-    num_train = len(guyane)
-    indices = list(range(num_train))
-    split = int(np.floor(args.train_portion * num_train))
+    # num_train = len(guyane)
+    # indices = list(range(num_train))
+    # split = int(np.floor(args.train_portion * num_train))
+    trains, vals = dataset.get_subset_indices(args.train_portion)
 
     train_queue = torch.utils.data.DataLoader(
-        guyane, batch_size=args.batch_size,
-        sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[:split]),
+        dataset, batch_size=args.batch_size,
+        sampler=torch.utils.data.sampler.SubsetRandomSampler(trains),
         pin_memory=True, num_workers=2)
 
     valid_queue = torch.utils.data.DataLoader(
-        guyane, batch_size=args.batch_size,
-        sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
+        dataset, batch_size=args.batch_size,
+        sampler=torch.utils.data.sampler.SubsetRandomSampler(vals),
         pin_memory=True, num_workers=2)
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -132,13 +135,13 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         model.train()
         n = input.size(0)
 
-        input = Variable(input, requires_grad=False).cuda(non_blocking=True)
-        target = Variable(torch.squeeze(target.float()), requires_grad=False).cuda(non_blocking=True)
+        input = Variable(input.float(), requires_grad=False).cuda(non_blocking=True)
+        target = Variable(target.float(), requires_grad=False).cuda(non_blocking=True)
 
         # get a random minibatch from the search queue with replacement
         input_search, target_search = next(valid_iter)
-        input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
-        target_search = Variable(torch.squeeze(target_search.float()), requires_grad=False).cuda(non_blocking=True)
+        input_search = Variable(input_search.float(), requires_grad=False).cuda(non_blocking=True)
+        target_search = Variable(target_search.float(), requires_grad=False).cuda(non_blocking=True)
 
         architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
 
