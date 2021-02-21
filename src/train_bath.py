@@ -74,13 +74,13 @@ def main():
         momentum=args.momentum,
         weight_decay=args.weight_decay)
 
-    train_transform, valid_transform = utils._data_transforms_cifar10(args)
-    datapath = os.path.join(utils.get_dir(), args.data)
+    # train_transform, valid_transform = utils._data_transforms_cifar10(args)
+    # datapath = os.path.join(utils.get_dir(), args.data)
     # train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
     # guyane = utils.BathymetryDataset("guyane/guyane.csv")
     # stl = utils.BathymetryDataset("saint_louis/saint_louis.csv")
     dataset = utils.BathymetryDataset("guyane/guyane.csv")
-    dataset.add("saint_louis/saint_louis.csv")
+    dataset.add("saint_louis/saint_louis.csv", args.seed)
 
     # num_train = len(guyane)
     # indices = list(range(num_train))
@@ -152,6 +152,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e', step, objs.avg)
+        return
 
     return objs.avg
 

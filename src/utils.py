@@ -216,26 +216,27 @@ class BathymetryDataset(Dataset):
         self.transform = transform
         self.lengths = [len(self.csv_data)]
 
-    def add(self, csv_file):
+    def add(self, csv_file, seed):
         new_csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
         new_csv_data["Unnamed: 0"] = new_csv_data["Unnamed: 0"].str.replace(
             "/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", "")
         self.csv_data = self.csv_data.append(new_csv_data)
         self.lengths.append(len(new_csv_data))
-        self.rebalance()
+        self.rebalance(seed)
 
-    def rebalance(self):
+    def rebalance(self, seed):
         max_length = max(self.lengths)
         last_length = 0
         new_lengths = []
         new_data = []
         for length in self.lengths:
             csv_portion = self.csv_data[last_length:last_length+length]
+            print(torch.seed())
             if max_length-length > 0:
                 upsampled = resample(csv_portion, 
                                      replace=True,     
                                      n_samples=max_length-length,
-                                     random_state=torch.seed())
+                                     random_state=seed)
                 csv_portion = csv_portion.append(upsampled)
             new_lengths.append(len(csv_portion))
             new_data.append(csv_portion)
