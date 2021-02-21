@@ -152,7 +152,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e', step, objs.avg)
-        return
 
     return objs.avg
 
