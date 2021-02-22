@@ -8,7 +8,6 @@ import utils
 import logging
 import argparse
 import torch.nn as nn
-import genotypes
 import torch.utils
 import torchvision.datasets as dset
 import torch.backends.cudnn as cudnn
@@ -92,7 +91,7 @@ def main():
     valid_queue = torch.utils.data.DataLoader(
         valid_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, float(args.epochs))
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs)
 
     for epoch in range(args.epochs):
         scheduler.step()
@@ -109,8 +108,8 @@ def main():
 
 
 def train(train_queue, model, criterion, optimizer):
-    objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
+    objs = utils.AverageMeter()
+    top1 = utils.AverageMeter()
     model.train()
 
     for step, (input, target) in enumerate(train_queue):
@@ -139,8 +138,8 @@ def train(train_queue, model, criterion, optimizer):
 
 
 def infer(valid_queue, model, criterion):
-    objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
+    objs = utils.AverageMeter()
+    top1 = utils.AverageMeter()
     model.eval()
 
     with torch.no_grad():

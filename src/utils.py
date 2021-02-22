@@ -12,7 +12,7 @@ import json
 from sklearn.utils import resample
 
 
-class AvgrageMeter(object):
+class AverageMeter(object):
 
     def __init__(self):
         self.reset()
@@ -280,4 +280,3 @@ class BathymetryDataset(Dataset):
 
         return sample
 
-#dataset/bathymetry/datasets_guyane_stlouis/

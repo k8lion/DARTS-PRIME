@@ -129,7 +129,7 @@ def main():
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
-    objs = utils.AvgrageMeter()
+    objs = utils.AverageMeter()
 
     valid_iter = iter(valid_queue)
     for step, (input, target) in enumerate(train_queue):
@@ -162,7 +162,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
 
 
 def infer(valid_queue, model, criterion):
-    objs = utils.AvgrageMeter()
+    objs = utils.AverageMeter()
     model.eval()
 
     with torch.no_grad():

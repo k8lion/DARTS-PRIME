@@ -72,26 +72,24 @@ def main():
 
 
 def infer(test_queue, model, criterion):
-    objs = utils.AvgrageMeter()
-    top1 = utils.AvgrageMeter()
-    top5 = utils.AvgrageMeter()
+    objs = utils.AverageMeter()
+    top1 = utils.AverageMeter()
     model.eval()
 
     for step, (input, target) in enumerate(test_queue):
-        input = Variable(input, volatile=True).cuda()
-        target = Variable(target, volatile=True).cuda(async=True)
+        input = Variable(input).cuda()
+        target = Variable(target).cuda(non_blonking=True)
 
         logits, _ = model(input)
         loss = criterion(logits, target)
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
+        prec1, prec5 = utils.accuracy(logits, target, topk=(1, ))
         n = input.size(0)
-        objs.update(loss.data[0], n)
-        top1.update(prec1.data[0], n)
-        top5.update(prec5.data[0], n)
+        objs.update(loss.item(), n)
+        top1.update(prec1[0].item(), n)
 
         if step % args.report_freq == 0:
-            logging.info('test %03d %e %f %f', step, objs.avg, top1.avg, top5.avg)
+            logging.info('test %03d %e %f', step, objs.avg, top1.avg)
 
     return top1.avg, objs.avg
 
