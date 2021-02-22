@@ -120,6 +120,11 @@ def main():
         # validation
         _ = infer(valid_queue, model, criterion)
 
+        model.update_history()
+
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
 
