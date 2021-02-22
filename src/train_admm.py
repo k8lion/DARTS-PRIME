@@ -115,6 +115,8 @@ def main():
 
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
+        plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
+        plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
         print(torch.relu(model.alphas_normal).tanh())
         print(torch.relu(model.alphas_reduce).tanh())
@@ -138,6 +140,11 @@ def main():
         utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'))
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
+
+    genotype = model.genotype()
+    logging.info('genotype = %s', genotype)
+    plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
+    plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):

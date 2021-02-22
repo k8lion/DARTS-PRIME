@@ -16,6 +16,7 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from model_search import Network
 from architect import Architect
+from visualize import plot
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
@@ -112,6 +113,8 @@ def main():
 
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
+        plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
+        plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
         print(F.softmax(model.alphas_normal, dim=-1))
         print(F.softmax(model.alphas_reduce, dim=-1))
@@ -138,6 +141,11 @@ def main():
             F.softmax(model.alphas_normal, dim=-1).data.cpu().numpy())
     np.save(os.path.join(os.path.join(args.save, 'reduce_weight.npy')),
             F.softmax(model.alphas_reduce, dim=-1).data.cpu().numpy())
+
+    genotype = model.genotype()
+    logging.info('genotype = %s', genotype)
+    plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
+    plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):

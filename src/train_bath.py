@@ -114,6 +114,8 @@ def main():
 
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
+        plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
+        plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
         print(F.softmax(model.alphas_normal, dim=-1))
         print(F.softmax(model.alphas_reduce, dim=-1))
@@ -131,6 +133,18 @@ def main():
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
+    print(F.softmax(model.alphas_normal, dim=-1))
+    print(F.softmax(model.alphas_reduce, dim=-1))
+
+    np.save(os.path.join(os.path.join(args.save, 'normal_weight.npy')),
+            F.softmax(model.alphas_normal, dim=-1).data.cpu().numpy())
+    np.save(os.path.join(os.path.join(args.save, 'reduce_weight.npy')),
+            F.softmax(model.alphas_reduce, dim=-1).data.cpu().numpy())
+
+    genotype = model.genotype()
+    logging.info('genotype = %s', genotype)
+    plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
+    plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
     objs = utils.AverageMeter()
