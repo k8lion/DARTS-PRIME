@@ -1,5 +1,5 @@
+from copy import deepcopy
 from torch.autograd import Variable
-
 
 from genotypes import Genotype
 from genotypes import ADMMPRIMITIVES
@@ -68,6 +68,7 @@ class Network(nn.Module):
         self._rho = rho
         self._steps = steps
         self._multiplier = multiplier
+        self._reduce = []
 
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
@@ -82,6 +83,7 @@ class Network(nn.Module):
             if i in [layers // 3, 2 * layers // 3]:
                 C_curr *= 2
                 reduction = True
+                self._reduce.append(i)
             else:
                 reduction = False
             cell = Cell(steps, multiplier, C_prev_prev, C_prev, C_curr, reduction, reduction_prev)
@@ -132,8 +134,13 @@ class Network(nn.Module):
         ]
         self.mask_alphas()
 
+        self.FI_reduce = torch.zeros_like(self.alphas_reduce)
+        self.FI_normal = torch.zeros_like(self.alphas_normal)
+
         self.alphas_normal_history = {}
         self.alphas_reduce_history = {}
+        self.FI_normal_history = {}
+        self.FI_reduce_history = {}
         mm = 0
         last_id = 1
         node_id = 0
@@ -141,6 +148,8 @@ class Network(nn.Module):
             for j in range(num_ops):
                 self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
                 self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
+                self.FI_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
+                self.FI_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
             if mm == last_id:
                 mm = 0
                 last_id += 1
@@ -254,6 +263,41 @@ class Network(nn.Module):
                 self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
                     float(normal[i][j]))
                 self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
+                    float(reduce[i][j]))
+            if mm == last_id:
+                mm = 0
+                last_id += 1
+                node_id += 1
+            else:
+                mm += 1
+
+    #TODO document
+    #TODO turn into callback
+    def track_FI(self):
+        self.FI_reduce *= 0.0
+        self.FI_normal *= 0.0
+        for (n,p) in self.named_parameters():
+            name = n.split(".")
+            if name[0] == "cells" and name[3].isdigit() and name[5].isdigit():
+                if int(name[1]) in self._reduce:
+                    self.FI_reduce[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / len(self._reduce)
+                else:
+                    self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / (self._layers - len(self._reduce))
+        print(self.FI_normal)
+        print(self.FI_reduce)
+
+        mm = 0
+        last_id = 1
+        node_id = 0
+        normal = self.FI_normal.data.cpu().numpy()
+        reduce = self.FI_reduce.data.cpu().numpy()
+
+        k, num_ops = normal.shape
+        for i in range(k):
+            for j in range(num_ops):
+                self.FI_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
+                    float(normal[i][j]))
+                self.FI_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
                     float(reduce[i][j]))
             if mm == last_id:
                 mm = 0

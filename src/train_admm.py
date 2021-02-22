@@ -134,6 +134,8 @@ def main():
 
         utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
         utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'))
+        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'))
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
@@ -164,6 +166,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
         model.mask_alphas()
+        model.track_FI()
 
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
