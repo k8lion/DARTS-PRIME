@@ -231,7 +231,6 @@ class BathymetryDataset(Dataset):
         new_data = []
         for length in self.lengths:
             csv_portion = self.csv_data[last_length:last_length+length]
-            print(torch.seed())
             if max_length-length > 0:
                 upsampled = resample(csv_portion, 
                                      replace=True,     
