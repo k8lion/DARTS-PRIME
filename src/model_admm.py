@@ -246,7 +246,7 @@ class Network(nn.Module):
         last_id = 1
         node_id = 0
         normal = torch.relu(self.alphas_normal).tanh().data.cpu().numpy()
-        reduce = torch.relu(self.alphas_normal).tanh().data.cpu().numpy()
+        reduce = torch.relu(self.alphas_reduce).tanh().data.cpu().numpy()
 
         k, num_ops = normal.shape
         for i in range(k):
