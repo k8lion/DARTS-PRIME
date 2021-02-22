@@ -172,7 +172,7 @@ def save_file(recoder, path='./'):
     handles, labels = axs[1, 1].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper right")
     fig.savefig(os.path.join(path, 'alphahistory.png'), bbox_inches='tight')
-    print('save history weight in {}'.format(os.path.join(path, 'alphahistory.png')))
+    print('save plot of history weight in {}'.format(os.path.join(path, 'alphahistory.png')))
     plt.close()
     if has_none:
         fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
@@ -193,12 +193,12 @@ def save_file(recoder, path='./'):
         handles, labels = axs[1, 1].get_legend_handles_labels()
         fig.legend(handles, labels, loc="upper right")
         fig.savefig(os.path.join(path, 'alphahistory-none.png'), bbox_inches='tight')
-        print('save history weight without nones in {}'.format(os.path.join(path, 'alphahistory-none.png')))
+        print('save plot of history weight without nones in {}'.format(os.path.join(path, 'alphahistory-none.png')))
         plt.close()
 
     with open(os.path.join(path, 'history_weight.json'), 'w') as outf:
         json.dump(recoder, outf)
-        print('save history weight in {}'.format(os.path.join(path, 'history_weight.json')))
+        print('save json of history weight in {}'.format(os.path.join(path, 'history_weight.json')))
 
 
 class BathymetryDataset(Dataset):
