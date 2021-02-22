@@ -130,6 +130,11 @@ def main():
         model.update_Z()
         model.update_U()
 
+        model.update_history()
+
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
 

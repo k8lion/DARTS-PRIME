@@ -132,6 +132,23 @@ class Network(nn.Module):
         ]
         self.mask_alphas()
 
+        self.alphas_normal_history = {}
+        self.alphas_reduce_history = {}
+        mm = 0
+        last_id = 1
+        node_id = 0
+        for i in range(k):
+            for j in range(num_ops):
+                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
+                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
+            if mm == last_id:
+                mm = 0
+                last_id += 1
+                node_id += 1
+            else:
+                mm += 1
+        self.update_history()
+
     def mask_alphas(self):
         with torch.no_grad():
             for param, mask in zip(self._arch_parameters, self._arch_mask):
@@ -215,3 +232,32 @@ class Network(nn.Module):
             print(new_u)
         self.U = new_U
 
+    def states(self):
+        return {
+          'alphas_normal': self.alphas_normal,
+          'alphas_reduce': self.alphas_reduce,
+          'alphas_normal_history': self.alphas_normal_history,
+          'alphas_reduce_history': self.alphas_reduce_history,
+          'criterion': self._criterion
+        }
+
+    def update_history(self):
+        mm = 0
+        last_id = 1
+        node_id = 0
+        normal = torch.relu(self.alphas_normal).tanh().data.cpu().numpy()
+        reduce = torch.relu(self.alphas_normal).tanh().data.cpu().numpy()
+
+        k, num_ops = normal.shape
+        for i in range(k):
+            for j in range(num_ops):
+                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
+                    float(normal[i][j]))
+                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
+                    float(reduce[i][j]))
+            if mm == last_id:
+                mm = 0
+                last_id += 1
+                node_id += 1
+            else:
+                mm += 1
