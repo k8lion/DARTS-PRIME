@@ -202,7 +202,7 @@ def save_file(recoder, path='./'):
 
 
 class BathymetryDataset(Dataset):
-    def __init__(self, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis", to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", transform=None):
+    def __init__(self, args, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis", to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with paths and labels.
@@ -213,16 +213,19 @@ class BathymetryDataset(Dataset):
         self.root_dir = os.path.join(get_dir(), root_dir)
         self.csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
         self.csv_data["Unnamed: 0"] = self.csv_data["Unnamed: 0"].str.replace(to_trim, "")
+        self.csv_data = self.csv_data[(self.csv_data["max_energy"] >= args.min_energy) & (self.csv_data["max_energy"] <= args.max_energy) & (self.csv_data["z"] <= args.max_depth)]
         self.transform = transform
+        self.depth_norm_factor = args.depth_normalization
         self.lengths = [len(self.csv_data)]
 
-    def add(self, csv_file, to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", seed=2):
+    def add(self, args, csv_file, to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/"):
         new_csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
         new_csv_data["Unnamed: 0"] = new_csv_data["Unnamed: 0"].str.replace(
             to_trim, "")
+        new_csv_data = new_csv_data[(new_csv_data["max_energy"] >= args.min_energy) & (new_csv_data["max_energy"] <= args.max_energy) & (new_csv_data["z"] <= args.max_depth)]
         self.csv_data = self.csv_data.append(new_csv_data)
         self.lengths.append(len(new_csv_data))
-        self.rebalance(seed)
+        self.rebalance(args.seed)
 
     def rebalance(self, seed):
         max_length = max(self.lengths)
@@ -271,7 +274,7 @@ class BathymetryDataset(Dataset):
             image = np.load(img_path)
         image = np.transpose(image, (2, 1, 0))
 
-        depth = self.csv_data.iloc[idx, 1]
+        depth = self.csv_data.iloc[idx, 1]*self.depth_norm_factor
         sample = (image, depth)
 
         if self.transform:

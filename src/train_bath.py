@@ -36,6 +36,10 @@ parser.add_argument('--train_portion', type=float, default=0.5, help='portion of
 parser.add_argument('--unrolled', action='store_true', default=False, help='use one-step unrolled validation loss')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
+parser.add_argument('--depth_normalization', type=float, default=0.1, help='depth normalization factor')
+parser.add_argument('--min_energy', type=float, default=0.1, help='minimum energy')
+parser.add_argument('--max_energy', type=float, default=4.0, help='maximum energy')
+parser.add_argument('--max_depth', type=float, default=40.0, help='maximum unnormalized depth')
 args = parser.parse_args()
 
 args.save = path = os.path.join(utils.get_dir(), 'exp/bath-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
@@ -79,8 +83,8 @@ def main():
     # train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
     # guyane = utils.BathymetryDataset("guyane/guyane.csv")
     # stl = utils.BathymetryDataset("saint_louis/saint_louis.csv")
-    dataset = utils.BathymetryDataset("guyane/guyane.csv")
-    dataset.add("saint_louis/saint_louis.csv", args.seed)
+    dataset = utils.BathymetryDataset(args, "guyane/guyane.csv")
+    dataset.add(args, "saint_louis/saint_louis.csv")
 
     # num_train = len(guyane)
     # indices = list(range(num_train))
