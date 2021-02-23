@@ -211,8 +211,6 @@ class Network(nn.Module):
             u = self.U[idx].cuda()
             z = self.Z[idx].cuda()
             loss += self._rho / 2 * (param - z + u).norm()
-            #if args.l01:
-                #loss += args.alpha * -F.mse_loss(param, torch.tensor(0.5, requires_grad=False).cuda())
             idx += 1
         return loss
 
@@ -240,6 +238,13 @@ class Network(nn.Module):
             new_u = u + x.detach().cpu().clone() - z
             new_U += (new_u,)
             print(new_u)
+        self.U = new_U
+
+    def clear_U(self):
+        new_U = ()
+        for u in self.U:
+            new_u = torch.zeros_like(u).cpu()
+            new_U += (new_u,)
         self.U = new_U
 
     def states(self):
@@ -284,8 +289,6 @@ class Network(nn.Module):
                     self.FI_reduce[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / len(self._reduce)
                 else:
                     self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / (self._layers - len(self._reduce))
-        print(self.FI_normal)
-        print(self.FI_reduce)
 
         mm = 0
         last_id = 1
