@@ -41,7 +41,8 @@ parser.add_argument('--train_portion', type=float, default=0.5, help='portion of
 parser.add_argument('--unrolled', action='store_true', default=False, help='use one-step unrolled validation loss')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
-parser.add_argument('--rho', type=float, default=1e-3, help='admm parameter')
+parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weight')
+parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency')
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/admm-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
@@ -108,7 +109,11 @@ def main():
 
     model.initialize_Z_and_U()
 
+    loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}}
+
     for epoch in range(args.epochs):
+        model.clear_U()
+
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
 
@@ -121,15 +126,14 @@ def main():
         print(torch.relu(model.alphas_reduce).tanh())
 
         # training
-        train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
+        train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers)
         logging.info('train_acc %f', train_acc)
 
         # validation
-        valid_acc, valid_obj = infer(valid_queue, model, criterion)
+        valid_acc, valid_obj = infer(valid_queue, model, criterion, loggers["infer"])
         logging.info('valid_acc %f', valid_acc)
 
-        model.update_Z()
-        model.update_U()
+        utils.plot_loss_acc(loggers, args.save)
 
         model.update_history()
 
@@ -144,11 +148,12 @@ def main():
     logging.info('genotype = %s', genotype)
 
 
-def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
+def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
     valid_iter = iter(valid_queue)
+    batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
         model.train()
         n = input.size(0)
@@ -161,7 +166,8 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
-        architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+        valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+        utils.log_loss_acc(loggers["val"], valid_loss.item(), None, 1 / batches)
 
         optimizer.zero_grad()
         logits = model(input)
@@ -175,14 +181,19 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
+        utils.log_loss_acc(loggers["train"], loss.item(), prec1[0].item(), 1/batches)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
+        if (step+1) % args.admm_freq == 0:
+            model.update_Z()
+            model.update_U()
+
     return top1.avg, objs.avg
 
 
-def infer(valid_queue, model, criterion):
+def infer(valid_queue, model, criterion, val_logger):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
     model.eval()
@@ -203,6 +214,7 @@ def infer(valid_queue, model, criterion):
             if step % args.report_freq == 0:
                 logging.info('valid %03d %e %f', step, objs.avg, top1.avg)
 
+    utils.log_loss_acc(val_logger, top1.avg, objs.avg, 1)
     return top1.avg, objs.avg
 
 

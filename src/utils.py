@@ -148,6 +148,34 @@ COLORMAP = {
     'dil_conv_5x5': blue(0.9)
 }
 
+def log_loss_acc(logger, loss, acc, step):
+    logger["loss"].append(loss)
+    logger["acc"].append(acc)
+    if len(logger["step"]) > 0:
+        logger["step"].append(logger["step"][-1]+step)
+    else:
+        logger["step"].append(0.0)
+
+def plot_loss_acc(loggers, path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    fig, axs = plt.subplots(2)
+    axs[1].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
+    axs[1].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)")
+    axs[1].legend()
+    axs[2].plot(loggers["infer"]["step"]+1, loggers["val"]["acc"], label="infer accuracy")
+    axs[2].legend()
+    fig.savefig(os.path.join(path, 'loss.png'), bbox_inches='tight')
+    plt.close()
+    fig, axs = plt.subplots(3)
+    axs[1].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
+    axs[2].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)", color="o")
+    axs[1].legend()
+    axs[2].legend()
+    axs[3].plot(loggers["infer"]["step"] + 1, loggers["val"]["acc"], label="infer accuracy")
+    axs[3].legend()
+    fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
+    plt.close()
 
 def save_file(recoder, path='./'):
     if not os.path.exists(path):
