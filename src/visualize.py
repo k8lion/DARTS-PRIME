@@ -50,6 +50,6 @@ if __name__ == '__main__':
     print("{} is not specified in genotypes.py".format(genotype_name)) 
     sys.exit(1)
 
-  plot(genotype.normal, "normal")
-  plot(genotype.reduce, "reduction")
+  plot(genotype.normal, "bathy_normal")
+  plot(genotype.reduce, "bathy_reduction")
 
