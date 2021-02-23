@@ -16,7 +16,6 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from model_admm import Network
 from architect import Architect
-from visualize import plot
 
 
 parser = argparse.ArgumentParser("cifar")
@@ -117,8 +116,6 @@ def main():
 
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
-        plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
-        plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
         print(torch.relu(model.alphas_normal).tanh())
         print(torch.relu(model.alphas_reduce).tanh())
@@ -145,8 +142,6 @@ def main():
 
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
-    plot(genotype.normal, os.path.join(args.save, 'normal_graph'))
-    plot(genotype.reduce, os.path.join(args.save, 'reduce_graph'))
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
