@@ -212,7 +212,10 @@ class BathymetryDataset(Dataset):
         """
         self.root_dir = os.path.join(get_dir(), root_dir)
         self.csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
-        self.csv_data["Unnamed: 0"] = self.csv_data["Unnamed: 0"].str.replace(to_trim, "")
+        try:
+            self.csv_data["Unnamed: 0"] = self.csv_data["Unnamed: 0"].str.replace(to_trim, "")
+        except:
+            self.csv_data.iloc[:, 0] = self.csv_data.iloc[:, 0].str.replace(to_trim, "")
         self.csv_data = self.csv_data[(self.csv_data["max_energy"] >= args.min_energy) & (self.csv_data["max_energy"] <= args.max_energy) & (self.csv_data["z"] <= args.max_depth)]
         self.transform = transform
         self.depth_norm_factor = args.depth_normalization
