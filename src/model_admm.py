@@ -16,9 +16,10 @@ class MixedOp(nn.Module):
             if 'pool' in primitive:
                 op = nn.Sequential(op, nn.BatchNorm2d(C, affine=False))
             self._ops.append(op)
+        self._bn = nn.BatchNorm2d(C, affine=False)
 
     def forward(self, x, weights):
-        return sum(w * op(x) for w, op in zip(weights, self._ops) if w > 0.0)
+        return self._bn(sum(w * op(x) for w, op in zip(weights, self._ops) if w > 0.0))
 
 
 class Cell(nn.Module):
