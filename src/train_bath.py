@@ -15,6 +15,8 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from model_search import Network
 from architect import Architect
+from visualize import plot
+
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
