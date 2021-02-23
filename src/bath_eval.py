@@ -149,7 +149,6 @@ def infer(valid_queue, model, criterion):
             logits, _ = model(input)
             loss = criterion(torch.squeeze(logits), target)
 
-            prec1 = utils.accuracy(torch.squeeze(logits), target, topk=(1, ))
             n = input.size(0)
             objs.update(loss.item(), n)
 
