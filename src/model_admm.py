@@ -233,7 +233,7 @@ class Network(nn.Module):
     def update_U(self):
         new_U = ()
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
-            new_u = (u + x.detach().cpu().clone() - z).mul(m)
+            new_u = (u.cuda() + x - z.cuda()).mul(m).detach().cpu()
             new_U += (new_u,)
             print(new_u)
         self.U = new_U
