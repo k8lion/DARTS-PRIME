@@ -137,15 +137,29 @@ def main():
 
         model.update_history()
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'))
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'))
         utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'))
         utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'))
+
+        scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
+        scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
+        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'))
+        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'))
+
+        utils.plot(loggers["train"]["steps"], model.FI_history, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
+
+
+def scale(FI_hist, alpha_hist):
+    scaled_FI = {}
+    for k in FI_hist.keys():
+        scaled_FI[k] = np.divide(np.array(FI_hist[k]), np.array(alpha_hist[k]))
+    return scaled_FI
 
 
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers):

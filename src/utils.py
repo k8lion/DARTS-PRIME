@@ -188,10 +188,14 @@ def plot_loss_acc(loggers, path):
     fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
     plt.close()
 
+def plot_FI(steps, FI_history, path):
+    fig, axs = plt.subplots(1)
+    axs[0].plot(steps, FI_history, label="Fisher Information Trace")
+    axs[0].legend()
+    fig.savefig(os.path.join(path, 'FI_history.png'), bbox_inches='tight')
+    plt.close()
 
 def save_file(recoder, path='./'):
-    if not os.path.exists(path):
-        os.makedirs(path)
     has_none = False
     fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
     for (k, v) in recoder.items():
@@ -211,8 +215,7 @@ def save_file(recoder, path='./'):
             axs[i, j].axis("off")
     handles, labels = axs[1, 1].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper right")
-    fig.savefig(os.path.join(path, 'alphahistory.png'), bbox_inches='tight')
-    print('save plot of history weight in {}'.format(os.path.join(path, 'alphahistory.png')))
+    fig.savefig(path + '_history.png', bbox_inches='tight')
     plt.close()
     if has_none:
         fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
@@ -232,13 +235,11 @@ def save_file(recoder, path='./'):
                 axs[i, j].axis("off")
         handles, labels = axs[1, 1].get_legend_handles_labels()
         fig.legend(handles, labels, loc="upper right")
-        fig.savefig(os.path.join(path, 'alphahistory-none.png'), bbox_inches='tight')
-        print('save plot of history weight without nones in {}'.format(os.path.join(path, 'alphahistory-none.png')))
+        fig.savefig(path + '_alphahistory-none.png', bbox_inches='tight')
         plt.close()
 
-    with open(os.path.join(path, 'history_weight.json'), 'w') as outf:
+    with open(path + '_history_weight.json', 'w') as outf:
         json.dump(recoder, outf)
-        print('save json of history weight in {}'.format(os.path.join(path, 'history_weight.json')))
 
 
 class BathymetryDataset(Dataset):
