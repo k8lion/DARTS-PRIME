@@ -135,8 +135,8 @@ class Network(nn.Module):
         ]
         self.mask_alphas()
 
-        self.FI_reduce = torch.zeros_like(self.alphas_reduce)
-        self.FI_normal = torch.zeros_like(self.alphas_normal)
+        self.FI_reduce = torch.zeros_like(self.alphas_reduce).cpu()
+        self.FI_normal = torch.zeros_like(self.alphas_normal).cpu()
         self.FI = 0.0
 
         self.alphas_normal_history = {}
@@ -287,9 +287,9 @@ class Network(nn.Module):
             name = n.split(".")
             if name[0] == "cells" and name[3].isdigit() and name[5].isdigit():
                 if int(name[1]) in self._reduce:
-                    self.FI_reduce[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / len(self._reduce)
+                    self.FI_reduce[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / len(self._reduce)
                 else:
-                    self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / (self._layers - len(self._reduce))
+                    self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / (self._layers - len(self._reduce))
 
         self.FI_history.append(float(self.FI))
 
