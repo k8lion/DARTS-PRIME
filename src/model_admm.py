@@ -208,9 +208,8 @@ class Network(nn.Module):
 
     def admm_loss(self, output, target):
         loss = self._criterion(output, target)
-        for u, x, z in zip(self.U, self._arch_parameters, self.Z):
-            print(self._rho / 2 * (torch.tanh(x).cpu() - z + u).norm())
-            loss += self._rho / 2 * (torch.tanh(x).cpu() - z + u).norm()
+        for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
+            loss += self._rho / 2 * ((torch.tanh(x) - z.cuda() + u.cuda()).mul(m)).norm()
         return loss
 
     def initialize_Z_and_U(self):
@@ -233,8 +232,8 @@ class Network(nn.Module):
 
     def update_U(self):
         new_U = ()
-        for u, x, z in zip(self.U, self._arch_parameters, self.Z):
-            new_u = u + x.detach().cpu().clone() - z
+        for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
+            new_u = (u + x.detach().cpu().clone() - z).mul(m)
             new_U += (new_u,)
             print(new_u)
         self.U = new_U
@@ -277,12 +276,12 @@ class Network(nn.Module):
                 mm += 1
 
     #TODO document
-    #TODO turn into callback
+    #TODO turn into hook
     def track_FI(self):
         self.FI_reduce *= 0.0
         self.FI_normal *= 0.0
         self.FI *= 0.0
-        for (n,p) in self.named_parameters():
+        for (n, p) in self.named_parameters():
             self.FI += torch.sum(p.grad.data ** 2).cpu()
             name = n.split(".")
             if name[0] == "cells" and name[3].isdigit() and name[5].isdigit():
