@@ -137,11 +137,13 @@ class Network(nn.Module):
 
         self.FI_reduce = torch.zeros_like(self.alphas_reduce)
         self.FI_normal = torch.zeros_like(self.alphas_normal)
+        self.FI = 0.0
 
         self.alphas_normal_history = {}
         self.alphas_reduce_history = {}
         self.FI_normal_history = {}
         self.FI_reduce_history = {}
+        self.FI_history = []
         mm = 0
         last_id = 1
         node_id = 0
@@ -215,14 +217,14 @@ class Network(nn.Module):
         self.Z = ()
         self.U = ()
         for param in self._arch_parameters:
-            self.Z += (param.detach().cpu().clone(),)
-            self.U += (torch.zeros_like(param).cpu(),)
+            self.Z += (param.clone(),)
+            self.U += (torch.zeros_like(param),)
 
     def update_Z(self):
         new_Z = ()
         idx = 0
         for x, u in zip(self._arch_parameters, self.U):
-            _, z = self._parse(torch.tanh(x.detach().cpu().clone() + u).data.cpu())
+            _, z = self._parse(torch.tanh(x+u))
             new_Z += (z,)
             idx += 1
             print(z)
@@ -232,7 +234,7 @@ class Network(nn.Module):
     def update_U(self):
         new_U = ()
         for u, x, z in zip(self.U, self._arch_parameters, self.Z):
-            new_u = u + x.detach().cpu().clone() - z
+            new_u = u + x - z
             new_U += (new_u,)
             print(new_u)
         self.U = new_U
@@ -240,7 +242,7 @@ class Network(nn.Module):
     def clear_U(self):
         new_U = ()
         for u in self.U:
-            new_u = torch.zeros_like(u).cpu()
+            new_u = torch.zeros_like(u)
             new_U += (new_u,)
         self.U = new_U
 
@@ -279,13 +281,17 @@ class Network(nn.Module):
     def track_FI(self):
         self.FI_reduce *= 0.0
         self.FI_normal *= 0.0
+        self.FI *= 0.0
         for (n,p) in self.named_parameters():
+            self.FI += torch.sum(p.grad.data ** 2)
             name = n.split(".")
             if name[0] == "cells" and name[3].isdigit() and name[5].isdigit():
                 if int(name[1]) in self._reduce:
                     self.FI_reduce[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / len(self._reduce)
                 else:
                     self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2) / (self._layers - len(self._reduce))
+
+        self.FI_history.append(float(self.FI))
 
         mm = 0
         last_id = 1
