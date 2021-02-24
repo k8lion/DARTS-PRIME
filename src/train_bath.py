@@ -128,7 +128,7 @@ def main():
         infer_loss = infer(valid_queue, model, criterion)
         utils.log_loss(loggers["infer"], infer_loss, None, 1)
 
-        utils.plot_loss(loggers, args.save)
+        utils.plot_loss_acc(loggers, args.save)
 
         model.update_history()
 
