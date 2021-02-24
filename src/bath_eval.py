@@ -98,22 +98,28 @@ def main():
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs)
 
+    loggers = {"train":{"loss": [], "step": []}, "val":{"loss": [], "step": []}}
+
     for epoch in range(args.epochs):
         scheduler.step()
         logging.info('epoch %d lr %e', epoch, scheduler.get_last_lr()[0])
         model.drop_path_prob = args.drop_path_prob * epoch / args.epochs
 
-        _ = train(train_queue, model, criterion, optimizer)
+        _ = train(train_queue, model, criterion, optimizer, loggers["train"])
 
-        _ = infer(valid_queue, model, criterion)
+        infer_loss = infer(valid_queue, model, criterion)
+        utils.log_loss(loggers["val"], infer_loss, None, 1)
+
+        utils.plot_loss(loggers, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
 
-def train(train_queue, model, criterion, optimizer):
+def train(train_queue, model, criterion, optimizer, train_logger):
     objs = utils.AverageMeter()
     model.train()
 
+    batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
         input = Variable(input.float()).cuda()
         target = Variable(target.float()).cuda(non_blocking=True)
@@ -130,6 +136,7 @@ def train(train_queue, model, criterion, optimizer):
 
         n = input.size(0)
         objs.update(loss.item(), n)
+        utils.log_loss(train_logger, loss.item(), None, 1 / batches)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e', step, objs.avg)

@@ -130,7 +130,7 @@ def main():
 
         # validation
         valid_acc, valid_obj = infer(valid_queue, model, criterion)
-        utils.log_loss_acc(loggers["infer"], valid_obj, valid_acc, 1)
+        utils.log_loss(loggers["infer"], valid_obj, valid_acc, 1)
         logging.info('valid_acc %f', valid_acc)
 
         utils.plot_loss_acc(loggers, args.save)
@@ -167,7 +167,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
         valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
-        utils.log_loss_acc(loggers["val"], valid_loss.item(), None, 1 / batches)
+        utils.log_loss(loggers["val"], valid_loss.item(), None, 1 / batches)
 
         optimizer.zero_grad()
         logits = model(input)
@@ -181,7 +181,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
-        utils.log_loss_acc(loggers["train"], loss.item(), prec1[0].item(), 1/batches)
+        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), 1/batches)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
