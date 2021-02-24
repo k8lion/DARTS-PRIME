@@ -205,13 +205,10 @@ class Network(nn.Module):
         return genotype
 
     def admm_loss(self, output, target):
-        idx = 0
         loss = self._criterion(output, target)
-        for param in self.arch_parameters():
-            u = self.U[idx].cuda()
-            z = self.Z[idx].cuda()
-            loss += self._rho / 2 * (param - z + u).norm()
-            idx += 1
+        for u, x, z in zip(self.U, self._arch_parameters, self.Z):
+            print(self._rho / 2 * (torch.tanh(x) - z + u).norm())
+            loss += self._rho / 2 * (torch.tanh(x) - z + u).norm()
         return loss
 
     def initialize_Z_and_U(self):
