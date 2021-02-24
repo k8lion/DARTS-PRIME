@@ -173,8 +173,8 @@ class Network(nn.Module):
 
     def _parse(self, weights):
         gene = []
-        z = torch.zeros_like(weights)
-        wnp = weights.cpu().numpy()
+        z = torch.zeros_like(weights).cpu()
+        wnp = weights.numpy()
         n = 2
         start = 0
         for i in range(self._steps):
@@ -209,22 +209,22 @@ class Network(nn.Module):
     def admm_loss(self, output, target):
         loss = self._criterion(output, target)
         for u, x, z in zip(self.U, self._arch_parameters, self.Z):
-            print(self._rho / 2 * (torch.tanh(x) - z + u).norm())
-            loss += self._rho / 2 * (torch.tanh(x) - z + u).norm()
+            print(self._rho / 2 * (torch.tanh(x).cpu() - z + u).norm())
+            loss += self._rho / 2 * (torch.tanh(x).cpu() - z + u).norm()
         return loss
 
     def initialize_Z_and_U(self):
         self.Z = ()
         self.U = ()
         for param in self._arch_parameters:
-            self.Z += (param.clone(),)
-            self.U += (torch.zeros_like(param),)
+            self.Z += (param.detach().cpu().clone(),)
+            self.U += (torch.zeros_like(param).cpu(),)
 
     def update_Z(self):
         new_Z = ()
         idx = 0
         for x, u in zip(self._arch_parameters, self.U):
-            _, z = self._parse(torch.tanh(x+u))
+            _, z = self._parse(torch.tanh(x.detach().cpu().clone() + u).data.cpu())
             new_Z += (z,)
             idx += 1
             print(z)
@@ -234,7 +234,7 @@ class Network(nn.Module):
     def update_U(self):
         new_U = ()
         for u, x, z in zip(self.U, self._arch_parameters, self.Z):
-            new_u = u + x - z
+            new_u = u + x.detach().cpu().clone() - z
             new_U += (new_u,)
             print(new_u)
         self.U = new_U
@@ -242,7 +242,7 @@ class Network(nn.Module):
     def clear_U(self):
         new_U = ()
         for u in self.U:
-            new_u = torch.zeros_like(u)
+            new_u = torch.zeros_like(u).cpu()
             new_U += (new_u,)
         self.U = new_U
 
