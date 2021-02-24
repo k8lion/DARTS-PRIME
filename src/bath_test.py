@@ -19,7 +19,7 @@ parser.add_argument('--batch_size', type=int, default=96, help='batch size')
 parser.add_argument('--report_freq', type=float, default=50, help='report frequency')
 parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
 parser.add_argument('--init_channels', type=int, default=36, help='num of init channels')
-parser.add_argument('--layers', type=int, default=20, help='total number of layers')
+parser.add_argument('--layers', type=int, default=8, help='total number of layers')
 parser.add_argument('--model_path', type=str, default='EXP/model.pt', help='path of pretrained model')
 parser.add_argument('--auxiliary', action='store_true', default=False, help='use auxiliary tower')
 parser.add_argument('--cutout', action='store_true', default=False, help='use cutout')
@@ -30,6 +30,7 @@ parser.add_argument('--arch', type=str, default='BATH', help='which architecture
 parser.add_argument('--min_energy', type=float, default=0.1, help='minimum energy')
 parser.add_argument('--max_energy', type=float, default=4.0, help='maximum energy')
 parser.add_argument('--max_depth', type=float, default=40.0, help='maximum unnormalized depth')
+parser.add_argument('--depth_normalization', type=float, default=0.1, help='depth normalization factor')
 
 args = parser.parse_args()
 
@@ -74,21 +75,24 @@ def main():
 
 def infer(test_queue, model, criterion):
     objs = utils.AverageMeter()
+    objs_ = utils.AverageMeter()
     model.eval()
 
     for step, (input, target) in enumerate(test_queue):
-        input = Variable(input).cuda()
-        target = Variable(target).cuda(non_blocking=True)
+        input = Variable(input.float()).cuda()
+        target = Variable(target.float()).cuda(non_blocking=True)
 
         #TODO: save logits and target to files
         logits, _ = model(input)
-        loss = criterion(logits, target)
+        loss = criterion(torch.squeeze(logits), target)
+        loss_ = criterion(torch.squeeze(logits)*10, target*10)
 
         n = input.size(0)
         objs.update(loss.item(), n)
+        objs_.update(loss_.item(), n)
 
         if step % args.report_freq == 0:
-            logging.info('test %03d %e', step, objs.avg)
+            logging.info('test %03d %e %e', step, objs.avg, objs_.avg)
 
     return objs.avg
 
