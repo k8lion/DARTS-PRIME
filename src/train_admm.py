@@ -182,6 +182,9 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
 
         valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
         utils.log_loss(loggers["val"], valid_loss.item(), None, 1 / batches)
+        del input_search
+        del target_search
+        torch.cuda.empty_cache()
 
         optimizer.zero_grad()
         logits = model(input)
