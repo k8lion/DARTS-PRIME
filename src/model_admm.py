@@ -283,7 +283,7 @@ class Network(nn.Module):
         self.FI_normal *= 0.0
         self.FI *= 0.0
         for (n,p) in self.named_parameters():
-            self.FI += torch.sum(p.grad.data ** 2)
+            self.FI += torch.sum(p.grad.data ** 2).cpu()
             name = n.split(".")
             if name[0] == "cells" and name[3].isdigit() and name[5].isdigit():
                 if int(name[1]) in self._reduce:
