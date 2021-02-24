@@ -173,8 +173,8 @@ class Network(nn.Module):
 
     def _parse(self, weights):
         gene = []
-        z = torch.zeros_like(weights).cpu()
-        wnp = weights.numpy()
+        z = torch.zeros_like(weights)
+        wnp = weights.cpu().numpy()
         n = 2
         start = 0
         for i in range(self._steps):
