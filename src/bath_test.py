@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
 from torch.autograd import Variable
+import genotypes
 
 import utils
 from model import NetworkBathy as Network
@@ -67,31 +68,29 @@ def main():
         test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
     model.drop_path_prob = args.drop_path_prob
-    test_acc, test_obj = infer(test_queue, model, criterion)
-    logging.info('test_acc %f', test_acc)
+    test_obj = infer(test_queue, model, criterion)
+    logging.info('test_obj %f', test_obj)
 
 
 def infer(test_queue, model, criterion):
     objs = utils.AverageMeter()
-    top1 = utils.AverageMeter()
     model.eval()
 
     for step, (input, target) in enumerate(test_queue):
         input = Variable(input).cuda()
-        target = Variable(target).cuda(non_blonking=True)
+        target = Variable(target).cuda(non_blocking=True)
 
+        #TODO: save logits and target to files
         logits, _ = model(input)
         loss = criterion(logits, target)
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, ))
         n = input.size(0)
         objs.update(loss.item(), n)
-        top1.update(prec1[0].item(), n)
 
         if step % args.report_freq == 0:
-            logging.info('test %03d %e %f', step, objs.avg, top1.avg)
+            logging.info('test %03d %e', step, objs.avg)
 
-    return top1.avg, objs.avg
+    return objs.avg
 
 
 if __name__ == '__main__':
