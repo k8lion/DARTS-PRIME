@@ -9,7 +9,6 @@ import logging
 import argparse
 import torch.nn as nn
 import torch.utils
-import torch.nn.functional as F
 import torchvision.datasets as dset
 import torch.backends.cudnn as cudnn
 
@@ -130,7 +129,8 @@ def main():
         logging.info('train_acc %f', train_acc)
 
         # validation
-        valid_acc, valid_obj = infer(valid_queue, model, criterion, loggers["infer"])
+        valid_acc, valid_obj = infer(valid_queue, model, criterion)
+        utils.log_loss_acc(loggers["infer"], valid_obj, valid_acc, 1)
         logging.info('valid_acc %f', valid_acc)
 
         utils.plot_loss_acc(loggers, args.save)
@@ -193,7 +193,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
     return top1.avg, objs.avg
 
 
-def infer(valid_queue, model, criterion, val_logger):
+def infer(valid_queue, model, criterion):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
     model.eval()
@@ -214,7 +214,6 @@ def infer(valid_queue, model, criterion, val_logger):
             if step % args.report_freq == 0:
                 logging.info('valid %03d %e %f', step, objs.avg, top1.avg)
 
-    utils.log_loss_acc(val_logger, top1.avg, objs.avg, 1)
     return top1.avg, objs.avg
 
 

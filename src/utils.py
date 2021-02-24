@@ -156,6 +156,13 @@ def log_loss_acc(logger, loss, acc, step):
     else:
         logger["step"].append(0.0)
 
+def log_loss(logger, loss, step):
+    logger["loss"].append(loss)
+    if len(logger["step"]) > 0:
+        logger["step"].append(logger["step"][-1] + step)
+    else:
+        logger["step"].append(0.0)
+
 def plot_loss_acc(loggers, path):
     if not os.path.exists(path):
         os.makedirs(path)
@@ -163,7 +170,7 @@ def plot_loss_acc(loggers, path):
     axs[0].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
     axs[0].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)")
     axs[0].legend()
-    axs[1].plot(loggers["infer"]["step"]+1, loggers["val"]["acc"], label="infer accuracy")
+    axs[1].plot(np.array(loggers["infer"]["step"])+1, loggers["val"]["acc"], label="infer accuracy")
     axs[1].legend()
     fig.savefig(os.path.join(path, 'loss.png'), bbox_inches='tight')
     plt.close()
@@ -172,7 +179,28 @@ def plot_loss_acc(loggers, path):
     axs[1].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)", color="o")
     axs[0].legend()
     axs[1].legend()
-    axs[2].plot(loggers["infer"]["step"] + 1, loggers["val"]["acc"], label="infer accuracy")
+    axs[2].plot(np.array(loggers["infer"]["step"]) + 1, loggers["infer"]["acc"], label="infer accuracy")
+    axs[2].legend()
+    fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
+    plt.close()
+
+def plot_loss(loggers, path):
+    if not os.path.exists(path):
+        os.makedirs(path)
+    fig, axs = plt.subplots(1)
+    axs[0].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
+    axs[0].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)")
+    axs[0].legend()
+    axs[1].plot(np.array(loggers["infer"]["step"])+1, loggers["val"]["loss"], label="infer loss")
+    axs[1].legend()
+    fig.savefig(os.path.join(path, 'loss.png'), bbox_inches='tight')
+    plt.close()
+    fig, axs = plt.subplots(3)
+    axs[0].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
+    axs[1].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)", color="o")
+    axs[0].legend()
+    axs[1].legend()
+    axs[2].plot(np.array(loggers["infer"]["step"]) + 1, loggers["infer"]["loss"], label="infer loss")
     axs[2].legend()
     fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
     plt.close()
