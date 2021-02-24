@@ -107,6 +107,8 @@ def main():
 
     architect = Architect(model, args)
 
+    loggers = {"train":{"loss": [], "step": []}, "val":{"loss": [], "step": []}, "infer":{"loss": [], "step": []}}
+
     for epoch in range(args.epochs):
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
@@ -120,10 +122,13 @@ def main():
         print(F.softmax(model.alphas_reduce, dim=-1))
 
         # training
-        _ = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
+        _ = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers)
 
         # validation
-        _ = infer(valid_queue, model, criterion)
+        infer_loss = infer(valid_queue, model, criterion)
+        utils.log_loss(loggers["infer"], infer_loss, 1)
+
+        utils.plot_loss(loggers, args.save)
 
         model.update_history()
 
@@ -143,10 +148,11 @@ def main():
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
 
-def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
+def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers):
     objs = utils.AverageMeter()
 
     valid_iter = iter(valid_queue)
+    batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
         model.train()
         n = input.size(0)
@@ -158,7 +164,8 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         input_search = Variable(input_search.float(), requires_grad=False).cuda(non_blocking=True)
         target_search = Variable(target_search.float(), requires_grad=False).cuda(non_blocking=True)
 
-        architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+        valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+        utils.log_loss_acc(loggers["val"], valid_loss.item(), 1 / batches)
 
         optimizer.zero_grad()
         logits = model(input)
@@ -169,6 +176,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         optimizer.step()
 
         objs.update(loss.item(), n)
+        utils.log_loss_acc(loggers["train"], loss.item(),1 / batches)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e', step, objs.avg)
