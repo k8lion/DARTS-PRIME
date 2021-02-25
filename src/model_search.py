@@ -82,6 +82,8 @@ class Network(nn.Module):
         self._criterion = criterion
         self._steps = steps
         self._multiplier = multiplier
+        self.FI_hist = []
+        self.batchstep = []
 
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
