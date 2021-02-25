@@ -196,8 +196,11 @@ def plot_FI(steps, FI_history, path):
     axs.legend()
     fig.savefig(os.path.join(path, 'FI_history.png'), bbox_inches='tight')
     plt.close()
-    with open(path + 'FI_history.json', 'w') as outf:
-        json.dump(FI_history, outf)
+    try:
+        with open(path + 'FI_history.json', 'w') as outf:
+            json.dump(FI_history, outf)
+    except:
+        pass
 
 def save_file(recoder, path='./', steps=None):
     has_none = False
@@ -244,9 +247,11 @@ def save_file(recoder, path='./', steps=None):
         fig.legend(handles, labels, loc="upper right")
         fig.savefig(path + '_alphahistory-none.png', bbox_inches='tight')
         plt.close()
-
-    with open(path + '_history_weight.json', 'w') as outf:
-        json.dump(recoder, outf)
+    try:
+        with open(path + '_history_weight.json', 'w') as outf:
+            json.dump(recoder, outf)
+    except:
+        pass
 
 
 class BathymetryDataset(Dataset):
