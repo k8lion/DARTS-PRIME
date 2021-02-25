@@ -135,19 +135,19 @@ def main():
 
         utils.plot_loss_acc(loggers, args.save)
 
-        model.update_history()
+        #model.update_history()
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'))
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'))
-        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'))
-        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'))
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'), steps=loggers["train"]["steps"])
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'), steps=loggers["train"]["steps"])
+        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'), steps=loggers["train"]["steps"])
+        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'), steps=loggers["train"]["steps"])
 
         scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
         scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
-        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'))
-        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'))
+        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["steps"])
+        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["steps"])
 
-        utils.plot(loggers["train"]["steps"], model.FI_history, args.save)
+        utils.plot_FI(loggers["train"]["steps"], model.FI_history, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
@@ -158,7 +158,7 @@ def main():
 def scale(FI_hist, alpha_hist):
     scaled_FI = {}
     for k in FI_hist.keys():
-        scaled_FI[k] = np.divide(np.array(FI_hist[k]), np.array(alpha_hist[k]))
+        scaled_FI[k] = np.divide(np.array(FI_hist[k]), np.array(alpha_hist[k][1:]))
     return scaled_FI
 
 
@@ -191,6 +191,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         optimizer.step()
         model.mask_alphas()
         model.track_FI()
+        model.update_history()
 
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)

@@ -128,8 +128,8 @@ def main():
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'))
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'))
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'), steps=model.batchstep)
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'), steps=model.batchstep)
 
     print(F.softmax(model.alphas_normal, dim=-1))
     print(F.softmax(model.alphas_reduce, dim=-1))
@@ -170,12 +170,12 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         model.FI_hist.append(torch.norm(torch.stack([torch.norm(p.grad.detach(), 2.0).cuda() for p in model.parameters() if p.grad is not None]), 2.0)**2)
-        model.FI_hist.append(1/batches)
+        model.batchstep.append(1/batches)
         if len(model.FI_hist) > 0:
-            model.FI_hist.append(model.FI_hist[-1] + 1 / batches)
-            model.FI_hist.append(1 / batches)
+            model.batchstep.append(model.batchstep[-1] + 1 / batches)
+            model.batchstep.append(1 / batches)
         else:
-            model.FI_hist.append(0.0)
+            model.batchstep.append(0.0)
         optimizer.step()
 
         # prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))

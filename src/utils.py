@@ -192,14 +192,19 @@ def plot_loss_acc(loggers, path):
 
 def plot_FI(steps, FI_history, path):
     fig, axs = plt.subplots(1)
-    axs[0].plot(steps, FI_history, label="Fisher Information Trace")
-    axs[0].legend()
+    axs.plot(steps, FI_history, label="Fisher Information Trace")
+    axs.legend()
     fig.savefig(os.path.join(path, 'FI_history.png'), bbox_inches='tight')
     plt.close()
+    with open(path + 'FI_history.json', 'w') as outf:
+        json.dump(FI_history, outf)
 
-def save_file(recoder, path='./'):
+def save_file(recoder, path='./', steps=None):
     has_none = False
     fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
+    if steps is None:
+        k, v  = recoder.items()[0]
+        steps = range(len(v))
     for (k, v) in recoder.items():
         outin = k[k.find("(")+1:k.find(")")].split(", ")
         src = int(outin[1])-2
@@ -209,7 +214,7 @@ def save_file(recoder, path='./'):
         if dest == 3:
             axs[dest, src + 2].set_xlabel(str(src))
         op = k.split("op: ")[1]
-        axs[dest, src+2].plot(v, label=op, color=COLORMAP[op])
+        axs[dest, src+2].plot(steps, v, label=op, color=COLORMAP[op])
         if "none" in op:
             has_none = True
     for i in range(0, 3):
@@ -231,7 +236,7 @@ def save_file(recoder, path='./'):
                     axs[dest, src + 2].set_ylabel(str(dest))
                 if dest == 3:
                     axs[dest, src + 2].set_xlabel(str(src))
-                axs[dest, src + 2].plot(v, label=op, color=COLORMAP[op])
+                axs[dest, src + 2].plot(steps, v, label=op, color=COLORMAP[op])
         for i in range(0, 3):
             for j in range(2 + i, 5):
                 axs[i, j].axis("off")
