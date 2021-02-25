@@ -110,7 +110,7 @@ def main():
         infer_loss = infer(valid_queue, model, criterion)
         utils.log_loss(loggers["val"], infer_loss, None, 1)
 
-        utils.plot_loss(loggers, args.save)
+        utils.plot_loss_acc(loggers, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
