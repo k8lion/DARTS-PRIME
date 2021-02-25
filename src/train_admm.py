@@ -158,7 +158,7 @@ def main():
 def scale(FI_hist, alpha_hist):
     scaled_FI = {}
     for k in FI_hist.keys():
-        scaled_FI[k] = np.divide(np.array(FI_hist[k]), np.array(alpha_hist[k][1:]))
+        scaled_FI[k] = np.divide(np.array(FI_hist[k]), np.array(torch.relu(alpha_hist[k][1:]).tanh()))
     return scaled_FI
 
 
