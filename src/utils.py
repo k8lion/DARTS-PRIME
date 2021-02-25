@@ -217,7 +217,10 @@ def save_file(recoder, path='./', steps=None):
         if dest == 3:
             axs[dest, src + 2].set_xlabel(str(src))
         op = k.split("op: ")[1]
-        axs[dest, src+2].plot(steps, v, label=op, color=COLORMAP[op])
+        try:
+            axs[dest, src+2].plot(steps, v, label=op, color=COLORMAP[op])
+        except:
+            axs[dest, src + 2].plot(v, label=op, color=COLORMAP[op])
         if "none" in op:
             has_none = True
     for i in range(0, 3):
@@ -239,7 +242,10 @@ def save_file(recoder, path='./', steps=None):
                     axs[dest, src + 2].set_ylabel(str(dest))
                 if dest == 3:
                     axs[dest, src + 2].set_xlabel(str(src))
-                axs[dest, src + 2].plot(steps, v, label=op, color=COLORMAP[op])
+                try:
+                    axs[dest, src + 2].plot(steps, v, label=op, color=COLORMAP[op])
+                except:
+                    axs[dest, src + 2].plot(v, label=op, color=COLORMAP[op])
         for i in range(0, 3):
             for j in range(2 + i, 5):
                 axs[i, j].axis("off")
