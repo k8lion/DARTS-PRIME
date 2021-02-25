@@ -8,6 +8,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+mpl.rcParams['lines.linewidth'] = 1.0
 import json
 from sklearn.utils import resample
 
