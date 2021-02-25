@@ -16,8 +16,6 @@ from torch.autograd import Variable
 from model_admm import Network
 from architect import Architect
 
-#TODO: find gpu mem leak!
-
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
