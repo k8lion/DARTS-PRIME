@@ -174,7 +174,7 @@ def plot_loss_acc(loggers, path):
         infer_legend = "loss"
     fig, axs = plt.subplots(2, sharex="col")
     axs[0].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
-    axs[0].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)")
+    axs[0].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE loss (alpha)")
     axs[0].legend()
     axs[1].plot(np.array(loggers[infer]["step"])+1, loggers[infer][infer_stat], label="infer "+infer_legend)
     axs[1].legend()
@@ -182,7 +182,7 @@ def plot_loss_acc(loggers, path):
     plt.close()
     fig, axs = plt.subplots(3, sharex="col")
     axs[0].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
-    axs[1].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE+ADMM loss (alpha)", color="tab:orange")
+    axs[1].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE loss (alpha)", color="tab:orange")
     axs[0].legend()
     axs[1].legend()
     axs[2].plot(np.array(loggers[infer]["step"])+1, loggers[infer][infer_stat], label="infer "+infer_legend)
