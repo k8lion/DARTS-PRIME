@@ -127,6 +127,8 @@ def main():
 
         model.update_history()
 
+        utils.plot_FI(model.batchstep, model.FI_hist, args.save)
+
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
         utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'), steps=model.batchstep)
