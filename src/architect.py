@@ -16,7 +16,11 @@ class Architect(object):
         self.optimizer = torch.optim.Adam(self.model.arch_parameters(),
                                           lr=args.arch_learning_rate, betas=(0.5, 0.999),
                                           weight_decay=args.arch_weight_decay)
-        self.entropy = args.entropy
+        if hasattr(args, 'entropy'):
+            self.entropy = args.entropy
+        else:
+            self.entropy = 0.0
+
 
     def _compute_unrolled_model(self, input, target, eta, network_optimizer):
         loss = self.model._loss(input, target)
