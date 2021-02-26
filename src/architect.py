@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-
+from torch.distributions import Categorical
 
 def _concat(xs):
     return torch.cat([x.view(-1) for x in xs])
@@ -16,6 +16,7 @@ class Architect(object):
         self.optimizer = torch.optim.Adam(self.model.arch_parameters(),
                                           lr=args.arch_learning_rate, betas=(0.5, 0.999),
                                           weight_decay=args.arch_weight_decay)
+        self.entropy = args.entropy
 
     def _compute_unrolled_model(self, input, target, eta, network_optimizer):
         loss = self.model._loss(input, target)
@@ -40,6 +41,8 @@ class Architect(object):
 
     def _backward_step(self, input_valid, target_valid):
         loss = self.model._loss(input_valid, target_valid)
+        if self.entropy > 0:
+            loss += self.entropy*(Categorical(probs = self.model.alphas_normal).entropy().sum()+Categorical(probs = self.model.alphas_reduce).entropy().sum())
         loss.backward()
         return loss
 

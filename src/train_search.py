@@ -40,6 +40,7 @@ parser.add_argument('--train_portion', type=float, default=0.5, help='portion of
 parser.add_argument('--unrolled', action='store_true', default=False, help='use one-step unrolled validation loss')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
+parser.add_argument('--entropy', type=float, default=0.0, help='weight of entropy regularization')
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
