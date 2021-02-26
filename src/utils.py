@@ -220,6 +220,7 @@ def save_file(recoder, path='./', steps=None):
         try:
             axs[dest, src+2].plot(steps, v, label=op, color=COLORMAP[op])
         except:
+            print(len(steps), len(v))
             axs[dest, src + 2].plot(v, label=op, color=COLORMAP[op])
         if "none" in op:
             has_none = True
