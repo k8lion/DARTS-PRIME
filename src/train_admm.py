@@ -180,8 +180,8 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
-        valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
-        utils.log_loss(loggers["val"], valid_loss.item(), None, 1 / batches)
+        valid_loss = 0.0#architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+        utils.log_loss(loggers["val"], valid_loss, None, 1 / batches)
 
         optimizer.zero_grad()
         logits = model(input)
@@ -221,7 +221,7 @@ def infer(valid_queue, model, criterion):
             logits = model(input)
             loss = criterion(logits, target)
 
-            prec1 = utils.accuracy(logits, target, topk=(1, 5))
+            prec1 = utils.accuracy(logits, target, topk=(1,))
             n = input.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1[0].item(), n)
