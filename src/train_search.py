@@ -173,10 +173,8 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         model.FI_hist.append(torch.norm(torch.stack([torch.norm(p.grad.detach(), 2.0).cuda() for p in model.parameters() if p.grad is not None]), 2.0)**2)
-        model.batchstep.append(1/batches)
         if len(model.FI_hist) > 0:
             model.batchstep.append(model.batchstep[-1] + 1 / batches)
-            model.batchstep.append(1 / batches)
         else:
             model.batchstep.append(0.0)
         optimizer.step()
