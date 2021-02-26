@@ -197,7 +197,7 @@ def plot_FI(steps, FI_history, path):
     fig.savefig(os.path.join(path, 'FI_history.png'), bbox_inches='tight')
     plt.close()
     try:
-        with open(path + 'FI_history.json', 'w') as outf:
+        with open(os.path.join(path, 'FI_history'), 'w') as outf:
             json.dump(FI_history, outf)
     except:
         pass

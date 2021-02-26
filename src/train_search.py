@@ -44,7 +44,7 @@ parser.add_argument('--entropy', type=float, default=0.0, help='weight of entrop
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
-utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
