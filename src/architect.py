@@ -48,7 +48,7 @@ class Architect(object):
     def _backward_step(self, input_valid, target_valid):
         loss = self.model._loss(input_valid, target_valid)
         if self.entropy > 0:
-            loss += self.entropy*(Categorical(probs = F.softmax(self.model.alphas_normal), dim=-1).entropy().sum()+Categorical(probs = F.softmax(self.model.alphas_reduce), dim=-1).entropy().sum())
+            loss += self.entropy*(Categorical(probs = F.softmax(self.model.alphas_normal, dim=-1)).entropy().sum()+Categorical(probs = F.softmax(self.model.alphas_reduce, dim=-1)).entropy().sum())
         loss.backward()
         return loss
 
