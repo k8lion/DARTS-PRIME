@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from torch.autograd import Variable
 from torch.distributions import Categorical
+import torch.nn.functional as F
+
 
 def _concat(xs):
     return torch.cat([x.view(-1) for x in xs])
@@ -46,7 +48,7 @@ class Architect(object):
     def _backward_step(self, input_valid, target_valid):
         loss = self.model._loss(input_valid, target_valid)
         if self.entropy > 0:
-            loss += self.entropy*(Categorical(probs = self.model.alphas_normal).entropy().sum()+Categorical(probs = self.model.alphas_reduce).entropy().sum())
+            loss += self.entropy*(Categorical(probs = F.softmax(self.model.alphas_normal), dim=-1).entropy().sum()+Categorical(probs = F.softmax(self.model.alphas_reduce), dim=-1).entropy().sum())
         loss.backward()
         return loss
 
