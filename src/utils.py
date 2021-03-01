@@ -190,14 +190,14 @@ def plot_loss_acc(loggers, path):
     fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
     plt.close()
 
-def plot_FI(steps, FI_history, path):
+def plot_FI(steps, FI_history, path, name):
     fig, axs = plt.subplots(1)
     axs.plot(steps, FI_history, label="Fisher Information Trace")
     axs.legend()
-    fig.savefig(os.path.join(path, 'FI_history.png'), bbox_inches='tight')
+    fig.savefig(os.path.join(path, name+'_history.png'), bbox_inches='tight')
     plt.close()
     try:
-        with open(os.path.join(path, 'FI_history'), 'w') as outf:
+        with open(os.path.join(path, name+'FI_history.json'), 'w') as outf:
             json.dump(FI_history, outf)
     except:
         pass
