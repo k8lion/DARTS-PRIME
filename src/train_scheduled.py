@@ -44,7 +44,7 @@ parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weigh
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/admm-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(), 'exp/admmsched-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
