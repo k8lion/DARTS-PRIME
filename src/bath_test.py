@@ -77,7 +77,7 @@ def main():
     logging.info('test_obj tne %f', test_obj)
 
     test_data_smd = utils.BathymetryDataset(args, "../29SMD.csv", root_dir="dataset/bathymetry/29SMD/dataset_29SMD",
-                                            to_trim="/tmp/pbs.6233542.admin01/tmp_portugal/")
+                                            to_trim="/tmp/pbs.6233565.admin01/tmp_portugal/")
 
     test_queue_smd = torch.utils.data.DataLoader(
         test_data_smd, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
