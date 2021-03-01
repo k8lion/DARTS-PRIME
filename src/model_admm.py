@@ -138,12 +138,14 @@ class Network(nn.Module):
         self.FI_reduce = torch.zeros_like(self.alphas_reduce).cpu()
         self.FI_normal = torch.zeros_like(self.alphas_normal).cpu()
         self.FI = 0.0
+        self.FI_alpha = 0.0
 
         self.alphas_normal_history = {}
         self.alphas_reduce_history = {}
         self.FI_normal_history = {}
         self.FI_reduce_history = {}
         self.FI_history = []
+        self.FI_alpha_history = []
         mm = 0
         last_id = 1
         node_id = 0
@@ -281,6 +283,7 @@ class Network(nn.Module):
         self.FI_reduce *= 0.0
         self.FI_normal *= 0.0
         self.FI *= 0.0
+        self.FI_alpha *= 0.0
         for (n, p) in self.named_parameters():
             self.FI += torch.sum(p.grad.data ** 2).cpu()
             name = n.split(".")
@@ -311,3 +314,9 @@ class Network(nn.Module):
                 node_id += 1
             else:
                 mm += 1
+
+        for p in self._arch_parameters:
+            self.FI_alpha += torch.sum(p.grad.data ** 2).cpu()
+
+        self.FI_alpha_history.append(float(self.FI_alpha))
+        

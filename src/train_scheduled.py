@@ -150,6 +150,7 @@ def main():
         utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save)
+        utils.plot_FI(loggers["train"]["step"], model.FI_alpha_history, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
@@ -169,29 +170,36 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
     top1 = utils.AverageMeter()
 
     batches = len(train_queue)
+    alpha_count = 0
     for step, (input, target) in enumerate(train_queue):
         model.train()
         n = input.size(0)
+        alpha_count += 1
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
         target = Variable(target, requires_grad=False).cuda(non_blocking=True)
 
-        # get a random minibatch from the search queue without replacement
-        input_search, target_search = next(valid_iter)
-        input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
-        target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
+        print("FI: ", model.FI)
+        if (model.FI > 0.0) & (model.FI < 10.0):
+            # get a random minibatch from the search queue without replacement
+            input_search, target_search = next(valid_iter)
+            input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
+            target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
-        valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
-        utils.log_loss(loggers["val"], valid_loss, None, 1 / batches)
+            valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+            utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
+            alpha_count = 0
+
 
         optimizer.zero_grad()
         logits = model(input)
         loss = criterion(logits, target)
         loss.backward()
+        model.track_FI()
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
         model.mask_alphas()
-        model.track_FI()
+
         model.update_history()
 
         prec1 = utils.accuracy(logits, target, topk=(1,))
@@ -202,7 +210,9 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        if (step+1) % args.admm_freq == 0:
+        print("FI_alpha: ", model.FI_alpha)
+
+        if (model.FI_alpha > 0.0) & (model.FI_alpha < 1.0):
             model.update_Z()
             model.update_U()
 
