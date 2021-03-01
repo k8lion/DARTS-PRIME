@@ -91,7 +91,7 @@ def main():
     test_queue_smd = torch.utils.data.DataLoader(
         test_data_smd, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
-    test_obj = infer(test_queue_smd, model, criterion, args.depth_normalization)
+    test_obj, targets, preds = infer(test_queue_smd, model, criterion, args.depth_normalization)
     logging.info('test_obj smd %f', test_obj)
 
     test_data_smd.write_results(targets, preds,
