@@ -200,11 +200,11 @@ def plot_FI(steps, FI_history, path, name):
     axs.plot(steps, FI_history, label="Fisher Information Trace")
     axs.legend()
     npFI = np.array(FI_history)
-    axs.set_ylim(bottom=0.1*np.percentile(npFI,0), top=3.0*np.percentile(npFI,99))
+    axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI,99))
     fig.savefig(os.path.join(path, name + '_history_perc.png'), bbox_inches='tight')
     plt.close()
     try:
-        with open(os.path.join(path, name+'FI_history.json'), 'w') as outf:
+        with open(os.path.join(path, name+'_history.json'), 'w') as outf:
             json.dump(FI_history, outf)
     except:
         pass
@@ -270,7 +270,7 @@ def save_file(recoder, path='./', steps=None):
 
 
 class BathymetryDataset(Dataset):
-    def __init__(self, args, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis", to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", transform=None):
+    def __init__(self, args, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis", to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", transform=None, to_filter=True):
         """
         Args:
             csv_file (string): Path to the csv file with paths and labels.
@@ -284,7 +284,8 @@ class BathymetryDataset(Dataset):
             self.csv_data["Unnamed: 0"] = self.csv_data["Unnamed: 0"].str.replace(to_trim, "")
         except:
             self.csv_data.iloc[:, 0] = self.csv_data.iloc[:, 0].str.replace(to_trim, "")
-        self.csv_data = self.csv_data[(self.csv_data["max_energy"] >= args.min_energy) & (self.csv_data["max_energy"] <= args.max_energy) & (self.csv_data["z"] <= args.max_depth)]
+        if to_filter:
+            self.csv_data = self.csv_data[(self.csv_data["max_energy"] >= args.min_energy) & (self.csv_data["max_energy"] <= args.max_energy) & (self.csv_data["z"] <= args.max_depth)]
         self.transform = transform
         self.depth_norm_factor = args.depth_normalization
         self.lengths = [len(self.csv_data)]
