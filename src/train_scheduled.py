@@ -176,9 +176,6 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         n = input.size(0)
         alpha_count += 1
 
-        input = Variable(input, requires_grad=False).cuda(non_blocking=True)
-        target = Variable(target, requires_grad=False).cuda(non_blocking=True)
-
         print("FI: ", model.FI)
         if (model.FI > 0.0) & (model.FI < 10.0):
             print("alpha step")
@@ -191,6 +188,8 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
             alpha_count = 0
 
+        input = Variable(input, requires_grad=False).cuda(non_blocking=True)
+        target = Variable(target, requires_grad=False).cuda(non_blocking=True)
 
         optimizer.zero_grad()
         logits = model(input)
