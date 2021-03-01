@@ -113,8 +113,8 @@ def infer(test_queue, model, criterion, depth_norm):
         logits, _ = model(input)
         loss = criterion(torch.squeeze(logits), target)
         loss_ = criterion(torch.squeeze(logits)*10, target*10)
-        predicteds.extend(torch.squeeze(logits).cpu().tolist()/depth_norm)
-        targets.extend(target.cpu().tolist() / depth_norm)
+        predicteds.extend(torch.squeeze(logits/depth_norm).cpu().tolist())
+        targets.extend((target/depth_norm).cpu().tolist())
 
         n = input.size(0)
         objs.update(loss.item(), n)
