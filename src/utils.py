@@ -330,6 +330,11 @@ class BathymetryDataset(Dataset):
             last_length += length
         return trains, vals
 
+    def write_results(self, targets, preds, path):
+        self.csv_data["Target"] = targets
+        self.csv_data["Predicted"] = preds
+        self.csv_data.to_csv(path)
+
     def __len__(self):
         return len(self.csv_data)
 

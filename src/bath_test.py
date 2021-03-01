@@ -75,28 +75,30 @@ def main():
 
     test_data_tne = utils.BathymetryDataset(args, "../29TNE.csv", root_dir="dataset/bathymetry/29TNE/dataset_29TNE",
                                             to_trim="/tmp/pbs.6233542.admin01/tmp_portugal/", to_filter=False)
-    out_tne = test_data_tne.csv_data
 
     test_queue_tne = torch.utils.data.DataLoader(
         test_data_tne, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
     model.drop_path_prob = args.drop_path_prob
-    test_obj = infer(test_queue_tne, model, criterion, out_tne, args.depth_normalization, os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'tne_results.csv'))
+    test_obj, targets, preds = infer(test_queue_tne, model, criterion, args.depth_normalization)
     logging.info('test_obj tne %f', test_obj)
+    
+    test_data_tne.write_results(targets, preds, os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'tne_results.csv'))
 
     test_data_smd = utils.BathymetryDataset(args, "../29SMD.csv", root_dir="dataset/bathymetry/29SMD/dataset_29SMD",
                                             to_trim="/tmp/pbs.6233565.admin01/tmp_portugal/", to_filter=False)
 
-    out_smd = test_data_smd.csv_data
-
     test_queue_smd = torch.utils.data.DataLoader(
         test_data_smd, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
-    test_obj = infer(test_queue_smd, model, criterion, out_smd, args.depth_normalization, os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'tne_results.csv'))
+    test_obj = infer(test_queue_smd, model, criterion, args.depth_normalization)
     logging.info('test_obj smd %f', test_obj)
 
+    test_data_smd.write_results(targets, preds,
+                                os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'smd_results.csv'))
 
-def infer(test_queue, model, criterion, out_df, depth_norm, csv_path):
+
+def infer(test_queue, model, criterion, depth_norm):
     objs = utils.AverageMeter()
     objs_ = utils.AverageMeter()
     model.eval()
@@ -120,10 +122,8 @@ def infer(test_queue, model, criterion, out_df, depth_norm, csv_path):
 
         if step % args.report_freq == 0:
             logging.info('test %03d %e %e', step, objs.avg, objs_.avg)
-    out_df["Target"] = targets
-    out_df["Predicted"] = predicteds
-    out_df.to_csv(csv_path)
-    return objs.avg
+    
+    return objs.avg, targets, predicteds
 
 
 if __name__ == '__main__':
