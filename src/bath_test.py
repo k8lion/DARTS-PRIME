@@ -58,6 +58,7 @@ def main():
     genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
     model = model.cuda()
+    print(os.path.join(utils.get_dir(),args.model_path))
     utils.load(model, os.path.join(utils.get_dir(),args.model_path))
 
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
