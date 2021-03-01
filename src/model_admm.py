@@ -316,6 +316,7 @@ class Network(nn.Module):
                 mm += 1
 
         for p in self._arch_parameters:
+            print(p.grad.data)
             self.FI_alpha += torch.sum(p.grad.data ** 2).cpu()
 
         self.FI_alpha_history.append(float(self.FI_alpha))
