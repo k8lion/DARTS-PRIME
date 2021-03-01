@@ -206,7 +206,7 @@ def save_file(recoder, path='./', steps=None):
     has_none = False
     fig, axs = plt.subplots(4, 5, sharex="col", sharey="row")
     if steps is None:
-        k, v  = recoder.items()[0]
+        k, v  = list(recoder.items())[0]
         steps = range(len(v))
     for (k, v) in recoder.items():
         outin = k[k.find("(")+1:k.find(")")].split(", ")
