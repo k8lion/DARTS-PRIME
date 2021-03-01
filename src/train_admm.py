@@ -101,8 +101,6 @@ def main():
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
         pin_memory=True, num_workers=2)
 
-    valid_iter = iter(valid_queue)
-
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, int(args.epochs), eta_min=args.learning_rate_min)
 
@@ -113,6 +111,7 @@ def main():
     loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}}
 
     for epoch in range(args.epochs):
+        valid_iter = iter(valid_queue)
         model.clear_U()
 
         scheduler.step()
