@@ -181,6 +181,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
 
         print("FI: ", model.FI)
         if (model.FI > 0.0) & (model.FI < 10.0):
+            print("alpha step")
             # get a random minibatch from the search queue without replacement
             input_search, target_search = next(valid_iter)
             input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
@@ -213,6 +214,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         print("FI_alpha: ", model.FI_alpha)
 
         if (model.FI_alpha > 0.0) & (model.FI_alpha < 1.0):
+            print("zu step")
             model.update_Z()
             model.update_U()
 
