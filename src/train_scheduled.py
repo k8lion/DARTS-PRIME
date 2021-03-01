@@ -218,6 +218,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             model.update_Z()
             model.update_U()
 
+    utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
     return top1.avg, objs.avg
 
 
