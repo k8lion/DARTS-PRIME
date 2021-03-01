@@ -37,7 +37,7 @@ args = parser.parse_args()
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
-fh = logging.FileHandler(os.path.join(utils.get_dir(),os.path.split(args.model_path)[0], 'testlog.txt'))
+fh = logging.FileHandler(os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'testlog.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
@@ -45,6 +45,11 @@ def main():
     if not torch.cuda.is_available():
         logging.info('no gpu device available')
         sys.exit(1)
+
+    genoname = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'genoname.txt')
+    if os.path.isfile(genoname):
+        with open(genoname, "r") as f:
+            args.arch = f.read()
 
     np.random.seed(args.seed)
     torch.cuda.set_device(args.gpu)
@@ -54,6 +59,7 @@ def main():
     torch.cuda.manual_seed(args.seed)
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
+
 
     genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
