@@ -91,8 +91,8 @@ def main():
     # datapath = os.path.join(utils.get_dir(), args.data)
     # train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
     # valid_data = dset.CIFAR10(root=datapath, train=False, download=True, transform=valid_transform)
-    train_data = utils.BathymetryDataset(args, "../mixed_train.csv")
-    valid_data = utils.BathymetryDataset(args, "../mixed_validation.csv")
+    train_data = utils.BathymetryDataset(args, "../mixed_train.csv", to_filter=False)
+    valid_data = utils.BathymetryDataset(args, "../mixed_validation.csv", to_filter=False)
 
     train_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size, shuffle=True, pin_memory=True, num_workers=2)
