@@ -196,6 +196,12 @@ def plot_FI(steps, FI_history, path, name):
     axs.legend()
     fig.savefig(os.path.join(path, name+'_history.png'), bbox_inches='tight')
     plt.close()
+    fig, axs = plt.subplots(1)
+    axs.plot(steps, FI_history, label="Fisher Information Trace")
+    axs.legend()
+    axs.set_ylim(bottom=None, top=1.5*np.percentile(np.array(FI_history),90))
+    fig.savefig(os.path.join(path, name + '_history_perc.png'), bbox_inches='tight')
+    plt.close()
     try:
         with open(os.path.join(path, name+'FI_history.json'), 'w') as outf:
             json.dump(FI_history, outf)
