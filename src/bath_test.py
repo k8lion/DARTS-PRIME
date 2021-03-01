@@ -37,7 +37,7 @@ args = parser.parse_args()
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
-fh = logging.FileHandler(os.path.join(os.path.split(args.model_path)[0], 'testlog.txt'))
+fh = logging.FileHandler(os.path.join(utils.get_dir(),os.path.split(args.model_path)[0], 'testlog.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
@@ -58,7 +58,7 @@ def main():
     genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
     model = model.cuda()
-    utils.load(model, args.model_path)
+    utils.load(model, os.path.join(utils.get_dir(),args.model_path))
 
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
