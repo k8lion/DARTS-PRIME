@@ -1,7 +1,7 @@
 import argparse
 import logging
 import sys
-
+import os
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -37,7 +37,9 @@ args = parser.parse_args()
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
-
+fh = logging.FileHandler(os.path.join(os.path.split(args.model_path)[0], 'testlog.txt'))
+fh.setFormatter(logging.Formatter(log_format))
+logging.getLogger().addHandler(fh)
 
 def main():
     if not torch.cuda.is_available():
@@ -63,14 +65,24 @@ def main():
     criterion = nn.MSELoss()
     criterion = criterion.cuda()
 
-    test_data = utils.BathymetryDataset(args, "../29TNE.csv", root_dir="dataset/bathymetry/29TNE/dataset_29TNE", to_trim="/tmp/pbs.6233542.admin01/tmp_portugal/")
+    test_data_tne = utils.BathymetryDataset(args, "../29TNE.csv", root_dir="dataset/bathymetry/29TNE/dataset_29TNE",
+                                            to_trim="/tmp/pbs.6233542.admin01/tmp_portugal/")
 
-    test_queue = torch.utils.data.DataLoader(
-        test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
+    test_queue_tne = torch.utils.data.DataLoader(
+        test_data_tne, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
     model.drop_path_prob = args.drop_path_prob
-    test_obj = infer(test_queue, model, criterion)
-    logging.info('test_obj %f', test_obj)
+    test_obj = infer(test_queue_tne, model, criterion)
+    logging.info('test_obj tne %f', test_obj)
+
+    test_data_smd = utils.BathymetryDataset(args, "../29SMD.csv", root_dir="dataset/bathymetry/29SMD/dataset_29SMD",
+                                            to_trim="/tmp/pbs.6233542.admin01/tmp_portugal/")
+
+    test_queue_smd = torch.utils.data.DataLoader(
+        test_data_smd, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
+
+    test_obj = infer(test_queue_smd, model, criterion)
+    logging.info('test_obj smd %f', test_obj)
 
 
 def infer(test_queue, model, criterion):
