@@ -43,7 +43,8 @@ parser.add_argument('--max_energy', type=float, default=4.0, help='maximum energ
 parser.add_argument('--max_depth', type=float, default=40.0, help='maximum unnormalized depth')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/bath-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S")))
+
+args.save = os.path.join(utils.get_dir(), 'exp/bath-{}-{}'.format(os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
