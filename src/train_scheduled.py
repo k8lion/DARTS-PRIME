@@ -132,7 +132,7 @@ def main():
         print(torch.relu(model.alphas_reduce).tanh())
 
         # training
-        train_acc, train_obj, alpha_threshold, zu_threshold = train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, )
+        train_acc, train_obj, alpha_threshold, zu_threshold = train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, args)
         logging.info('train_acc %f', train_acc)
 
         # validation
