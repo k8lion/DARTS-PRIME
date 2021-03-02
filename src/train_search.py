@@ -164,6 +164,10 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
         architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+        FI_alpha = 0.0
+        for p in model._arch_parameters:
+            FI_alpha += torch.sum(p.grad.data ** 2).cpu()
+        print("FI_alpha: ", float(FI_alpha))
 
         optimizer.zero_grad()
         logits = model(input)
