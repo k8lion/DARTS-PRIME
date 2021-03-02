@@ -44,7 +44,7 @@ parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weigh
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/admm-{}-{}'.format(os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(), 'exp/admm-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -148,7 +148,7 @@ def main():
         utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
         utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
-        utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save)
+        utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI")
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 

@@ -42,7 +42,7 @@ parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weigh
 parser.add_argument('--entropy', type=float, default=0.0, help='weight of entropy regularization')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
