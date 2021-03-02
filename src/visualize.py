@@ -39,17 +39,14 @@ def plot(genotype, filename):
 
 
 if __name__ == '__main__':
-  if len(sys.argv) != 2:
-    print("usage:\n python {} ARCH_NAME".format(sys.argv[0]))
-    sys.exit(1)
 
-  genotype_name = sys.argv[1]
+  genotype_name = "BATH"
   try:
     genotype = eval('genotypes.{}'.format(genotype_name))
   except AttributeError:
     print("{} is not specified in genotypes.py".format(genotype_name)) 
     sys.exit(1)
 
-  plot(genotype.normal, "bathy_normal")
-  plot(genotype.reduce, "bathy_reduction")
+  plot(genotype.normal, "/home/kaitlin/repos/admmdarts/olympe/exp/batheval-EXP-20210223-153000/normal")
+  plot(genotype.reduce, "/home/kaitlin/repos/admmdarts/olympe/exp/batheval-EXP-20210223-153000/reduce")
 
