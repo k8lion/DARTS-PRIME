@@ -9,7 +9,7 @@ import logging
 import argparse
 import torch.nn as nn
 import torch.utils
-import genotypes
+from genotypes import *
 import torch.backends.cudnn as cudnn
 
 from torch.autograd import Variable

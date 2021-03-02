@@ -9,7 +9,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
 from torch.autograd import Variable
-import genotypes
+from genotypes import *
 
 import utils
 from model import NetworkBathy as Network
