@@ -61,8 +61,13 @@ def main():
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
 
-
-    genotype = eval("genotypes.%s" % args.arch)
+    genotype_path = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'genotype.txt')
+    if os.path.isfile(genotype_path):
+        with open(genotype_path, "r") as f:
+            geno_raw = f.read()
+            genotype = eval(geno_raw)
+    else:
+        genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
     model = model.cuda()
     print(os.path.join(utils.get_dir(),args.model_path))

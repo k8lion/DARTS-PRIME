@@ -26,6 +26,7 @@ parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
 parser.add_argument('--epochs', type=int, default=100, help='num of training epochs')
 parser.add_argument('--init_channels', type=int, default=36, help='num of init channels')
 parser.add_argument('--layers', type=int, default=8, help='total number of layers')
+parser.add_argument('--genotype_path', type=str, default='', help='path of search trial')
 parser.add_argument('--model_path', type=str, default='saved_models', help='path to save the model')
 parser.add_argument('--auxiliary', action='store_true', default=False, help='use auxiliary tower')
 parser.add_argument('--auxiliary_weight', type=float, default=0.4, help='weight for auxiliary loss')
@@ -43,13 +44,16 @@ parser.add_argument('--max_depth', type=float, default=40.0, help='maximum unnor
 
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/batheval-{}-{}'.format(os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
+if args.genotype_path is not None:
+    args.save = os.path.join(utils.get_dir(), args.genotype_path, 'batheval-{}-{}'.format(os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
+else:
+    args.save = os.path.join(utils.get_dir(), 'exp/batheval-{}-{}'.format(os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
-fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
+fh = logging.FileHandler(os.path.join(args.save, 'log_eval.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
@@ -68,11 +72,18 @@ def main():
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
 
-    f = open(os.path.join(args.save, 'genoname.txt'), "w")
-    f.write(args.arch)
+    genotype_path = os.path.join(utils.get_dir(), args.genotype_path, 'genotype.txt')
+    if os.path.isfile(genotype_path):
+        with open(genotype_path, "r") as f:
+            geno_raw = f.read()
+            genotype = eval(geno_raw)
+    else:
+        genotype = eval("genotypes.%s" % args.arch)
+
+    f = open(os.path.join(args.save, 'genotype.txt'), "w")
+    f.write(genotype)
     f.close()
 
-    genotype = eval("genotypes.%s" % args.arch)
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
     model = model.cuda()
 
