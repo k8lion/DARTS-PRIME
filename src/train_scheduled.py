@@ -42,6 +42,8 @@ parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='lear
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
 parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weight')
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency')
+parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
+parser.add_argument('--init_zu_threshold', type=float, default=1.0, help='initial zu threshold')
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/admmsched-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
@@ -111,6 +113,9 @@ def main():
 
     loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}}
 
+    alpha_threshold = args.init_alpha_threshold
+    zu_threshold = args.init_zu_threshold
+
     for epoch in range(args.epochs):
         valid_iter = iter(valid_queue)
         model.clear_U()
@@ -127,7 +132,7 @@ def main():
         print(torch.relu(model.alphas_reduce).tanh())
 
         # training
-        train_acc, train_obj = train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers)
+        train_acc, train_obj, alpha_threshold, zu_threshold = train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, )
         logging.info('train_acc %f', train_acc)
 
         # validation
@@ -165,7 +170,7 @@ def scale(FI_hist, alpha_hist):
     return scaled_FI
 
 
-def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers):
+def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
@@ -176,8 +181,8 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         n = input.size(0)
         alpha_count += 1
 
-        print("FI: ", model.FI)
-        if (model.FI > 0.0) & (model.FI < 10.0):
+        print("FI: ", model.FI, " alpha_threshold: ", alpha_threshold)
+        if (model.FI > 0.0) & (model.FI < alpha_threshold):
             print("alpha step")
             # get a random minibatch from the search queue without replacement
             input_search, target_search = next(valid_iter)
@@ -187,6 +192,10 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
             utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
             alpha_count = 0
+            #alpha_threshold = args.init_alpha_threshold
+            alpha_threshold *= 0.5
+        else:
+            alpha_threshold *= 1.1
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
         target = Variable(target, requires_grad=False).cuda(non_blocking=True)
@@ -210,15 +219,20 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        print("FI_alpha: ", model.FI_alpha)
+        print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
 
-        if (model.FI_alpha > 0.0) & (model.FI_alpha < 1.0):
+        if (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
             print("zu step")
             model.update_Z()
             model.update_U()
+            #zu_threshold = args.init_zu_threshold
+            zu_threshold *= 0.5
+            #reset alpha threshold?
+        else:
+            zu_threshold *= 1.1
 
     utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
-    return top1.avg, objs.avg
+    return top1.avg, objs.avg, alpha_threshold, zu_threshold
 
 
 def infer(valid_queue, model, criterion):
