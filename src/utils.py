@@ -200,7 +200,7 @@ def plot_FI(steps, FI_history, path, name):
     axs.plot(steps, FI_history, label="Fisher Information Trace")
     axs.legend()
     npFI = np.array(FI_history)
-    axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI,99))
+    axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI[len(FI_history)*0.1:],99))
     fig.savefig(os.path.join(path, name + '_history_perc.png'), bbox_inches='tight')
     plt.close()
     try:
