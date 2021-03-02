@@ -2,6 +2,8 @@ import argparse
 import logging
 import sys
 import os
+import time
+import glob
 import pandas as pd
 import numpy as np
 import torch
@@ -35,10 +37,13 @@ parser.add_argument('--depth_normalization', type=float, default=0.1, help='dept
 
 args = parser.parse_args()
 
+args.save = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], '{}-{}-{}'.format(os.path.split(args.model_path)[1], os.getenv('SLURM_JOB_NAME'), time.strftime("%Y%m%d-%H%M%S")))
+utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
+
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
-fh = logging.FileHandler(os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'testlog.txt'))
+fh = logging.FileHandler(os.path.join(args.save, 'testlog.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
@@ -46,11 +51,6 @@ def main():
     if not torch.cuda.is_available():
         logging.info('no gpu device available')
         sys.exit(1)
-
-    genoname = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'genoname.txt')
-    if os.path.isfile(genoname):
-        with open(genoname, "r") as f:
-            args.arch = f.read()
 
     np.random.seed(args.seed)
     torch.cuda.set_device(args.gpu)
@@ -67,7 +67,13 @@ def main():
             geno_raw = f.read()
             genotype = eval(geno_raw)
     else:
-        genotype = eval("genotypes.%s" % args.arch)
+        genoname = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'genoname.txt')
+        if os.path.isfile(genoname):
+            with open(genoname, "r") as f:
+                args.arch = f.read()
+            genotype = eval("genotypes.%s" % args.arch)
+        else:
+            genotype = eval("genotypes.BATH")
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
     model = model.cuda()
     print(os.path.join(utils.get_dir(),args.model_path))
@@ -88,7 +94,7 @@ def main():
     test_obj, targets, preds = infer(test_queue_tne, model, criterion, args.depth_normalization)
     logging.info('test_obj tne %f', test_obj)
     
-    test_data_tne.write_results(targets, preds, os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'tne_results.csv'))
+    test_data_tne.write_results(targets, preds, os.path.join(args.save, 'tne_results.csv'))
 
     test_data_smd = utils.BathymetryDataset(args, "../29SMD.csv", root_dir="dataset/bathymetry/29SMD/dataset_29SMD",
                                             to_trim="/tmp/pbs.6233565.admin01/tmp_portugal/", to_filter=False)
@@ -99,8 +105,7 @@ def main():
     test_obj, targets, preds = infer(test_queue_smd, model, criterion, args.depth_normalization)
     logging.info('test_obj smd %f', test_obj)
 
-    test_data_smd.write_results(targets, preds,
-                                os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'smd_results.csv'))
+    test_data_smd.write_results(targets, preds, os.path.join(args.save, 'smd_results.csv'))
 
 
 def infer(test_queue, model, criterion, depth_norm):

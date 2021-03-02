@@ -128,6 +128,8 @@ def main():
         utils.plot_loss_acc(loggers, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
+        if (epoch+1) % 50 == 0:
+            utils.save(model, os.path.join(args.save, 'checkpoint'+str(epoch)+'weights.pt'))
 
 
 def train(train_queue, model, criterion, optimizer, train_logger):
