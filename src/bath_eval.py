@@ -81,7 +81,7 @@ def main():
         genotype = eval("genotypes.%s" % args.arch)
 
     f = open(os.path.join(args.save, 'genotype.txt'), "w")
-    f.write(genotype)
+    f.write(str(genotype))
     f.close()
 
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
