@@ -292,8 +292,10 @@ class BathymetryDataset(Dataset):
 
     def add(self, args, csv_file, to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", to_balance=True):
         new_csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
-        new_csv_data["Unnamed: 0"] = new_csv_data["Unnamed: 0"].str.replace(
-            to_trim, "")
+        try:
+            new_csv_data["Unnamed: 0"] = new_csv_data["Unnamed: 0"].str.replace(to_trim, "")
+        except:
+            new_csv_data.iloc[:, 0] = new_csv_data.iloc[:, 0].str.replace(to_trim, "")
         if self.to_filter:
             new_csv_data = new_csv_data[(new_csv_data["max_energy"] >= args.min_energy) & (new_csv_data["max_energy"] <= args.max_energy) & (new_csv_data["z"] <= args.max_depth)]
         self.csv_data = self.csv_data.append(new_csv_data)
