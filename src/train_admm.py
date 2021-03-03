@@ -112,7 +112,7 @@ def main():
 
     for epoch in range(args.epochs):
         valid_iter = iter(valid_queue)
-        model.clear_U()
+        model.clear_U() #TODO: keep?
 
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
@@ -170,6 +170,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
     batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
         model.train()
+        model.tick(1 / batches)
         n = input.size(0)
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
@@ -181,7 +182,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
         valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
-        utils.log_loss(loggers["val"], valid_loss, None, 1 / batches)
+        utils.log_loss(loggers["val"], valid_loss, None, model.clock)
 
         optimizer.zero_grad()
         logits = model(input)
@@ -196,7 +197,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
-        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), 1/batches)
+        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), model.clock)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)

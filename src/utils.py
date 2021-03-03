@@ -154,10 +154,7 @@ def log_loss(logger, loss, acc, step):
     logger["loss"].append(loss)
     if acc is not None:
         logger["acc"].append(acc)
-    if len(logger["step"]) > 0:
-        logger["step"].append(logger["step"][-1]+step)
-    else:
-        logger["step"].append(0.0)
+    logger["step"].append(step)
 
 def plot_loss_acc(loggers, path):
     if not os.path.exists(path):
@@ -190,14 +187,18 @@ def plot_loss_acc(loggers, path):
     fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
     plt.close()
 
-def plot_FI(steps, FI_history, path, name):
+def plot_FI(steps, FI_history, path, name, thresh_log = None):
     fig, axs = plt.subplots(1)
     axs.plot(steps, FI_history, label="Fisher Information Trace")
+    if thresh_log is not None:
+        axs.plot(thresh_log["steps"], thresh_log["threshold"], label="Threshold")
     axs.legend()
     fig.savefig(os.path.join(path, name+'_history.png'), bbox_inches='tight')
     plt.close()
     fig, axs = plt.subplots(1)
     axs.plot(steps, FI_history, label="Fisher Information Trace")
+    if thresh_log is not None:
+        axs.plot(thresh_log["steps"], thresh_log["threshold"], label="Threshold")
     axs.legend()
     npFI = np.array(FI_history)
     axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI[int(len(FI_history)*0.1):],99))
@@ -206,6 +207,9 @@ def plot_FI(steps, FI_history, path, name):
     try:
         with open(os.path.join(path, name+'_history.json'), 'w') as outf:
             json.dump(FI_history, outf)
+        if thresh_log is not None:
+            with open(os.path.join(path, name + '_threshold_history.json'), 'w') as outf:
+                json.dump(thresh_log, outf)
     except:
         pass
 

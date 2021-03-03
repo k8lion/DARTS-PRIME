@@ -111,7 +111,7 @@ def main():
 
     model.initialize_Z_and_U()
 
-    loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}}
+    loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}, "ath":{"threshold": [], "step": []}, "zuth":{"threshold": [], "step": []}}
 
     alpha_threshold = args.init_alpha_threshold
     zu_threshold = args.init_zu_threshold
@@ -154,8 +154,8 @@ def main():
         utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
         utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
-        utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI")
-        utils.plot_FI(loggers["train"]["step"], model.FI_alpha_history, args.save, "FI_alpha")
+        utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"])
+        utils.plot_FI(loggers["train"]["step"], model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
@@ -175,13 +175,14 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
     top1 = utils.AverageMeter()
 
     batches = len(train_queue)
-    alpha_count = 0
     for step, (input, target) in enumerate(train_queue):
         model.train()
         n = input.size(0)
-        alpha_count += 1
+        model.tick(1 / batches)
 
         print("FI: ", model.FI, " alpha_threshold: ", alpha_threshold)
+        loggers["ath"]["threshold"].append(alpha_threshold)
+        loggers["ath"]["step"].append(model.clock)
         if (model.FI > 0.0) & (model.FI < alpha_threshold):
             print("alpha step")
             # get a random minibatch from the search queue without replacement
@@ -190,8 +191,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
             valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
-            utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
-            alpha_count = 0
+            utils.log_loss(loggers["val"], valid_loss, None, model.clock)
             #alpha_threshold = args.init_alpha_threshold
             alpha_threshold *= 0.5
         else:
@@ -214,13 +214,14 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
-        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), 1/batches)
+        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), model.clock)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
         print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
-
+        loggers["zuth"]["threshold"].append(zu_threshold)
+        loggers["zuth"]["step"].append(model.clock)
         if (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
             print("zu step")
             model.update_Z()
@@ -231,7 +232,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         else:
             zu_threshold *= 1.1
 
-    utils.log_loss(loggers["val"], valid_loss, None, alpha_count / batches)
+    utils.log_loss(loggers["val"], valid_loss, None, model.clock)
     return top1.avg, objs.avg, alpha_threshold, zu_threshold
 
 

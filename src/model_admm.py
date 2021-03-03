@@ -70,6 +70,7 @@ class Network(nn.Module):
         self._steps = steps
         self._multiplier = multiplier
         self._reduce = []
+        self.clock = 0.0
 
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
@@ -114,6 +115,9 @@ class Network(nn.Module):
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
         return logits
+
+    def tick(self, step):
+        self.clock += step
 
     def _loss(self, input, target):
         logits = self(input)
