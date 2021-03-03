@@ -37,7 +37,7 @@ parser.add_argument('--depth_normalization', type=float, default=0.1, help='dept
 
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], '{}-{}-{}'.format(os.path.split(args.model_path)[1], os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(), args.model_path)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
