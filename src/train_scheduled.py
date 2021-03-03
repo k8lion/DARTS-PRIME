@@ -179,6 +179,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         model.train()
         n = input.size(0)
         model.tick(1 / batches)
+        alpha_step = False
 
         print("FI: ", model.FI, " alpha_threshold: ", alpha_threshold)
         loggers["ath"]["threshold"].append(alpha_threshold)
@@ -194,6 +195,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
             #alpha_threshold = args.init_alpha_threshold
             alpha_threshold *= 0.5
+            alpha_step = True
         else:
             alpha_threshold *= 1.1
 
@@ -229,7 +231,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             #zu_threshold = args.init_zu_threshold
             zu_threshold *= 0.5
             #reset alpha threshold?
-        else:
+        elif alpha_step:
             zu_threshold *= 1.1
 
     utils.log_loss(loggers["val"], valid_loss, None, model.clock)
