@@ -191,14 +191,14 @@ def plot_FI(steps, FI_history, path, name, thresh_log = None):
     fig, axs = plt.subplots(1)
     axs.plot(steps, FI_history, label="Fisher Information Trace")
     if thresh_log is not None:
-        axs.plot(thresh_log["steps"], thresh_log["threshold"], label="Threshold")
+        axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold")
     axs.legend()
     fig.savefig(os.path.join(path, name+'_history.png'), bbox_inches='tight')
     plt.close()
     fig, axs = plt.subplots(1)
     axs.plot(steps, FI_history, label="Fisher Information Trace")
     if thresh_log is not None:
-        axs.plot(thresh_log["steps"], thresh_log["threshold"], label="Threshold")
+        axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold")
     axs.legend()
     #npFI = np.array(FI_history)
     #axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI[int(len(FI_history)*0.1):],99))
