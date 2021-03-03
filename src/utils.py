@@ -287,7 +287,11 @@ class BathymetryDataset(Dataset):
             self.csv_data = self.csv_data[(self.csv_data["max_energy"] >= args.min_energy) & (self.csv_data["max_energy"] <= args.max_energy) & (self.csv_data["z"] <= args.max_depth)]
         self.transform = transform
         self.depth_norm_factor = args.depth_normalization
-        self.lengths = [len(self.csv_data)]
+        if "mixed" in csv_file:
+            self.lengths = [len(self.csv_data[self.csv_data.iloc[:, 0].str.contains(source)]) for source in ["guyane", "saint_louis"]]
+            print(self.lengths)
+        else:
+            self.lengths = [len(self.csv_data)]
         self.to_filter = to_filter
 
     def add(self, args, csv_file, to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", to_balance=True):
@@ -299,7 +303,11 @@ class BathymetryDataset(Dataset):
         if self.to_filter:
             new_csv_data = new_csv_data[(new_csv_data["max_energy"] >= args.min_energy) & (new_csv_data["max_energy"] <= args.max_energy) & (new_csv_data["z"] <= args.max_depth)]
         self.csv_data = self.csv_data.append(new_csv_data)
-        self.lengths.append(len(new_csv_data))
+        if "mixed" in csv_file:
+            self.lengths.extend([len(new_csv_data[new_csv_data.iloc[:, 0].str.contains(source)]) for source in ["guyane", "saint_louis"]])
+            print(self.lengths)
+        else:
+            self.lengths.append(len(new_csv_data))
         if to_balance:
             self.rebalance(args.seed)
 
