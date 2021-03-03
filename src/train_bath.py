@@ -80,17 +80,13 @@ def main():
         momentum=args.momentum,
         weight_decay=args.weight_decay)
 
-    # train_transform, valid_transform = utils._data_transforms_cifar10(args)
-    # datapath = os.path.join(utils.get_dir(), args.data)
-    # train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
-    # guyane = utils.BathymetryDataset("guyane/guyane.csv")
-    # stl = utils.BathymetryDataset("saint_louis/saint_louis.csv")
-    dataset = utils.BathymetryDataset(args, "guyane/guyane.csv")
-    dataset.add(args, "saint_louis/saint_louis.csv")
 
-    # num_train = len(guyane)
-    # indices = list(range(num_train))
-    # split = int(np.floor(args.train_portion * num_train))
+    #dataset = utils.BathymetryDataset(args, "guyane/guyane.csv")
+    #dataset.add(args, "saint_louis/saint_louis.csv")
+
+    dataset = utils.BathymetryDataset(args, "../mixed_train.csv", to_filter=False)
+    dataset.add(args, "../mixed_validation.csv", to_balance=False)
+
     trains, vals = dataset.get_subset_indices(args.train_portion)
 
     train_queue = torch.utils.data.DataLoader(

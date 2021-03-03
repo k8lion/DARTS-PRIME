@@ -288,15 +288,18 @@ class BathymetryDataset(Dataset):
         self.transform = transform
         self.depth_norm_factor = args.depth_normalization
         self.lengths = [len(self.csv_data)]
+        self.to_filter = to_filter
 
-    def add(self, args, csv_file, to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/"):
+    def add(self, args, csv_file, to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", to_balance=True):
         new_csv_data = pd.read_csv(os.path.join(self.root_dir, csv_file))
         new_csv_data["Unnamed: 0"] = new_csv_data["Unnamed: 0"].str.replace(
             to_trim, "")
-        new_csv_data = new_csv_data[(new_csv_data["max_energy"] >= args.min_energy) & (new_csv_data["max_energy"] <= args.max_energy) & (new_csv_data["z"] <= args.max_depth)]
+        if self.to_filter:
+            new_csv_data = new_csv_data[(new_csv_data["max_energy"] >= args.min_energy) & (new_csv_data["max_energy"] <= args.max_energy) & (new_csv_data["z"] <= args.max_depth)]
         self.csv_data = self.csv_data.append(new_csv_data)
         self.lengths.append(len(new_csv_data))
-        self.rebalance(args.seed)
+        if to_balance:
+            self.rebalance(args.seed)
 
     def rebalance(self, seed):
         max_length = max(self.lengths)
