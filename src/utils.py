@@ -202,7 +202,7 @@ def plot_FI(steps, FI_history, path, name, thresh_log = None):
     axs.legend()
     #npFI = np.array(FI_history)
     #axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI[int(len(FI_history)*0.1):],99))
-    axs.yscale("log")
+    axs.set_yscale("log")
     fig.savefig(os.path.join(path, name + '_history_log.png'), bbox_inches='tight')
     plt.close()
     try:
