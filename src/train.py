@@ -26,6 +26,7 @@ parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
 parser.add_argument('--epochs', type=int, default=600, help='num of training epochs')
 parser.add_argument('--init_channels', type=int, default=36, help='num of init channels')
 parser.add_argument('--layers', type=int, default=20, help='total number of layers')
+parser.add_argument('--genotype_path', type=str, default='', help='path of search trial')
 parser.add_argument('--model_path', type=str, default='saved_models', help='path to save the model')
 parser.add_argument('--auxiliary', action='store_true', default=False, help='use auxiliary tower')
 parser.add_argument('--auxiliary_weight', type=float, default=0.4, help='weight for auxiliary loss')
@@ -38,7 +39,10 @@ parser.add_argument('--arch', type=str, default='DARTS', help='which architectur
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+if args.genotype_path is not None:
+    args.save = os.path.join(utils.get_dir(), args.genotype_path, 'eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+else:
+    args.save = os.path.join(utils.get_dir(), 'exp/eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -65,7 +69,18 @@ def main():
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
 
-    genotype = eval("genotypes.%s" % args.arch)
+    genotype_path = os.path.join(utils.get_dir(), args.genotype_path, 'genotype.txt')
+    if os.path.isfile(genotype_path):
+        with open(genotype_path, "r") as f:
+            geno_raw = f.read()
+            genotype = eval(geno_raw)
+    else:
+        genotype = eval("genotypes.%s" % args.arch)
+
+    f = open(os.path.join(args.save, 'genotype.txt'), "w")
+    f.write(str(genotype))
+    f.close()
+
     model = Network(args.init_channels, CIFAR_CLASSES, args.layers, args.auxiliary, genotype)
     model = model.cuda()
 
