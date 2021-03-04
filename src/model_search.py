@@ -112,6 +112,7 @@ class Network(nn.Module):
             self.output_module = DenseTail(C_prev, depth=3)
 
         self._initialize_alphas()
+        self.clock = 0.0
 
     def new(self):
         model_new = Network(self._C, self._num_classes, self._layers, self._criterion).cuda()
@@ -130,6 +131,9 @@ class Network(nn.Module):
         out = self.global_pooling(s1)
         logits = self.output_module(out.view(out.size(0), -1))
         return logits.squeeze()
+
+    def tick(self, step):
+        self.clock += step
 
     def _loss(self, input, target):
         logits = self(input)
