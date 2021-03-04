@@ -144,6 +144,10 @@ def main():
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
 
+    f = open(os.path.join(args.save, 'genotype.txt'), "w")
+    f.write(str(genotype))
+    f.close()
+
 def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()

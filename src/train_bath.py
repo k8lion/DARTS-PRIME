@@ -146,7 +146,7 @@ def main():
     logging.info('genotype = %s', genotype)
 
     f = open(os.path.join(args.save, 'genotype.txt'), "w")
-    f.write(genotype)
+    f.write(str(genotype))
     f.close()
 
 
