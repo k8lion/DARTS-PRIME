@@ -168,7 +168,7 @@ def main():
         utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
-        utils.plot_FI(loggers["train"]["step"], model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"], loggers['zustep'])
+        utils.plot_FI(model.FI_alpha_history_step, model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"], loggers['zustep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
