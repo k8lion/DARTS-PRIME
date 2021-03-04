@@ -202,7 +202,7 @@ def plot_FI(steps, FI_history, path, name, thresh_log = None, step_log = None):
             axs.legend()
             axs.set_yscale(scale)
             axs.set_xlim(xlims)
-            fig.savefig(os.path.join(path, name+'_history_'+scale+'_'+xlims[0]+'-'+xlims[1]+'.png'), bbox_inches='tight')
+            fig.savefig(os.path.join(path, name+'_history_'+scale+'_'+str(xlims[0])+'-'+str(xlims[1])+'.png'), bbox_inches='tight')
             plt.close()
     try:
         with open(os.path.join(path, name+'_history.json'), 'w') as outf:
