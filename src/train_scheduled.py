@@ -1,21 +1,21 @@
+import argparse
+import glob
+import logging
 import os
 import sys
 import time
-import glob
+
 import numpy as np
 import torch
-import utils
-import logging
-import argparse
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
 import torchvision.datasets as dset
-import torch.backends.cudnn as cudnn
-
 from torch.autograd import Variable
-from model_admm import Network
-from architect import Architect
 
+import utils
+from architect import Architect
+from model_admm import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
@@ -41,9 +41,12 @@ parser.add_argument('--unrolled', action='store_true', default=False, help='use 
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
 parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weight')
-parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency')
+parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency (if not dynamically scheduled')
 parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
 parser.add_argument('--init_zu_threshold', type=float, default=1.0, help='initial zu threshold')
+parser.add_argument('--threshold_multiplier', type=float, default=1.1, help='threshold multiplier')
+parser.add_argument('--threshold_divider', type=float, default=0.2, help='threshold divider')
+parser.add_argument('--scheduled_zu', action='store_true', default=False, help='use dynamically scheduled z,u steps')
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/admmsched-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
@@ -111,10 +114,17 @@ def main():
 
     model.initialize_Z_and_U()
 
-    loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}, "ath":{"threshold": [], "step": []}, "zuth":{"threshold": [], "step": []}}
+    loggers = {"train": {"loss": [], "acc": [], "step": []},
+               "val": {"loss": [], "acc": [], "step": []},
+               "infer": {"loss": [], "acc": [], "step": []},
+               "ath": {"threshold": [], "step": []},
+               "zuth": {"threshold": [], "step": []},
+               "astep": [],
+               "zustep": []}
 
     alpha_threshold = args.init_alpha_threshold
     zu_threshold = args.init_zu_threshold
+    alpha_counter = 0
 
     for epoch in range(args.epochs):
         valid_iter = iter(valid_queue)
@@ -132,12 +142,15 @@ def main():
         print(torch.relu(model.alphas_reduce).tanh())
 
         # training
-        train_acc, train_obj, alpha_threshold, zu_threshold = train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, args)
+        train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter = train(train_queue, valid_iter, model,
+                                                                                   architect, criterion, optimizer, lr,
+                                                                                   loggers, alpha_threshold,
+                                                                                   zu_threshold, alpha_counter, args)
         logging.info('train_acc %f', train_acc)
 
         # validation
         valid_acc, valid_obj = infer(valid_queue, model, criterion)
-        utils.log_loss(loggers["infer"], valid_obj, valid_acc, 1)
+        utils.log_loss(loggers["infer"], valid_obj, valid_acc, model.clock)
         logging.info('valid_acc %f', valid_acc)
 
         utils.plot_loss_acc(loggers, args.save)
@@ -154,13 +167,17 @@ def main():
         utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
         utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
-        utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"])
-        utils.plot_FI(loggers["train"]["step"], model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"])
+        utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
+        utils.plot_FI(loggers["train"]["step"], model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"], loggers['zustep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
+
+    f = open(os.path.join(args.save, 'genotype.txt'), "w")
+    f.write(genotype)
+    f.close()
 
 
 def scale(FI_hist, alpha_hist):
@@ -170,7 +187,7 @@ def scale(FI_hist, alpha_hist):
     return scaled_FI
 
 
-def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, args):
+def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
@@ -196,6 +213,8 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             #alpha_threshold = args.init_alpha_threshold
             alpha_threshold *= 0.5
             alpha_step = True
+            alpha_counter += 1
+            loggers["astep"].append(model.clock)
         else:
             alpha_threshold *= 1.1
 
@@ -206,7 +225,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         logits = model(input)
         loss = criterion(logits, target)
         loss.backward()
-        model.track_FI()
+        model.track_FI(alpha_step)
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
         model.mask_alphas()
@@ -221,21 +240,30 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
-        loggers["zuth"]["threshold"].append(zu_threshold)
-        loggers["zuth"]["step"].append(model.clock)
-        if (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
-            print("zu step")
-            model.update_Z()
-            model.update_U()
-            #zu_threshold = args.init_zu_threshold
-            zu_threshold *= 0.5
-            #reset alpha threshold?
-        elif alpha_step:
-            zu_threshold *= 1.1
+        if args.scheduled_zu:
+            print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
+            loggers["zuth"]["threshold"].append(zu_threshold)
+            loggers["zuth"]["step"].append(model.clock)
+            if alpha_step & (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
+                print("zu step")
+                model.update_Z()
+                model.update_U()
+                #zu_threshold = args.init_zu_threshold
+                zu_threshold *= 0.5
+                loggers["zustep"].append(model.clock)
+                alpha_counter = 0
+                #reset alpha threshold?
+            elif alpha_step:
+                zu_threshold *= 1.1
+        else:
+            if (alpha_counter + 1) % args.admm_freq == 0:
+                model.update_Z()
+                model.update_U()
+                loggers["zustep"].append(model.clock)
+                alpha_counter = 0
 
     utils.log_loss(loggers["val"], valid_loss, None, model.clock)
-    return top1.avg, objs.avg, alpha_threshold, zu_threshold
+    return top1.avg, objs.avg, alpha_threshold, zu_threshold, alpha_counter
 
 
 def infer(valid_queue, model, criterion):
