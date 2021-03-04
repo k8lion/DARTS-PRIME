@@ -187,24 +187,23 @@ def plot_loss_acc(loggers, path):
     fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
     plt.close()
 
-def plot_FI(steps, FI_history, path, name, thresh_log = None):
-    fig, axs = plt.subplots(1)
-    axs.plot(steps, FI_history, label="Fisher Information Trace")
-    if thresh_log is not None:
-        axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold")
-    axs.legend()
-    fig.savefig(os.path.join(path, name+'_history.png'), bbox_inches='tight')
-    plt.close()
-    fig, axs = plt.subplots(1)
-    axs.plot(steps, FI_history, label="Fisher Information Trace")
-    if thresh_log is not None:
-        axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold")
-    axs.legend()
-    #npFI = np.array(FI_history)
-    #axs.set_ylim(bottom=-0.1, top=3.0*np.percentile(npFI[int(len(FI_history)*0.1):],99))
-    axs.set_yscale("log")
-    fig.savefig(os.path.join(path, name + '_history_log.png'), bbox_inches='tight')
-    plt.close()
+def plot_FI(steps, FI_history, path, name, thresh_log = None, step_log = None):
+    for scale in ["log", "linear"]:
+        for xlims in [(0, 1), (0, 50), (49, 50)]:
+            fig, axs = plt.subplots(1)
+            if step_log is not None:
+                if xlims[1]-xlims[0] <= 1:
+                    axs.vlines(step_log, 0.01, 0.1, label = "Step")
+                else:
+                    axs.hist(step_log, range(max(steps)), label="Number of steps")
+            axs.plot(steps, FI_history, label="Fisher Information Trace")
+            if thresh_log is not None:
+                axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold")
+            axs.legend()
+            axs.set_yscale(scale)
+            axs.set_xlim(xlims)
+            fig.savefig(os.path.join(path, name+'_history_'+scale+'_'+xlims[0]+'-'+xlims[1]+'.png'), bbox_inches='tight')
+            plt.close()
     try:
         with open(os.path.join(path, name+'_history.json'), 'w') as outf:
             json.dump(FI_history, outf)
