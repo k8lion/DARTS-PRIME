@@ -12,7 +12,7 @@ import matplotlib as mpl
 mpl.rcParams['lines.linewidth'] = 1.0
 import json
 from sklearn.utils import resample
-
+from math import ceil
 
 class AverageMeter(object):
 
@@ -192,12 +192,13 @@ def plot_loss_acc(loggers, path):
 def plot_FI(steps, FI_history, path, name, thresh_log = [], step_log = None):
     for scale in ["log", "linear"]:
         for xlims in [[0, 1], [0, 50], [49, 50]]:
+            orig_xmax = xlims[1]
             if max(steps) < xlims[0]:
-                pass
+                continue
             if max(steps) < xlims[1]:
                 xlims[1] = max(steps)
             elif max(steps)-1 > xlims[1]:
-                pass
+                continue
             if scale == "log" and xlims[0] == 0 and xlims[1] == 50:
                 fig, axs = plt.subplots(2, sharex="col")
                 axs[0].set_yscale(scale)
@@ -215,14 +216,14 @@ def plot_FI(steps, FI_history, path, name, thresh_log = [], step_log = None):
                 axs.set_xlim(xlims)
                 if step_log is not None:
                     if xlims[1]-xlims[0] <= 1:
-                        axs.vlines(step_log, axs.get_ylim()[0], 1, label="Step", color="k")
+                        axs.vlines(step_log, axs.get_ylim()[0], min(thresh_log["threshold"]), label="Step", color="k")
                     else:
                         axs.hist(step_log, range(int(max(steps))), label="Number of steps")
                 axs.plot(steps, FI_history, label="Fisher Information Trace")
                 if len(thresh_log) > 0:
                     axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold", alpha=0.5)
                 axs.legend()
-            fig.savefig(os.path.join(path, name+'_history_'+scale+'_'+str(xlims[0])+'-'+str(xlims[1])+'.png'), bbox_inches='tight')
+            fig.savefig(os.path.join(path, name+'_history_'+scale+'_'+str(xlims[0])+'-'+str(orig_xmax)+'.png'), bbox_inches='tight')
             plt.close()
     try:
         with open(os.path.join(path, name+'_history.json'), 'w') as outf:
