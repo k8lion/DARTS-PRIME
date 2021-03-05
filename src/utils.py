@@ -170,6 +170,7 @@ def plot_loss_acc(loggers, path):
     else:
         infer_stat = "loss"
         infer_legend = "loss"
+    print(loggers[infer]["step"])
     fig, axs = plt.subplots(2, sharex="col")
     axs[0].plot(loggers["train"]["step"], loggers["train"]["loss"], label="training CE loss (w)")
     axs[0].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE loss (alpha)")
