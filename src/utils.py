@@ -151,6 +151,7 @@ COLORMAP = {
 }
 
 def log_loss(logger, loss, acc, step):
+    print(loss, acc, step)
     logger["loss"].append(loss)
     if acc is not None:
         logger["acc"].append(acc)
@@ -190,18 +191,30 @@ def plot_loss_acc(loggers, path):
 def plot_FI(steps, FI_history, path, name, thresh_log = None, step_log = None):
     for scale in ["log", "linear"]:
         for xlims in [(0, 1), (0, 50), (49, 50)]:
-            fig, axs = plt.subplots(1)
-            if step_log is not None:
-                if xlims[1]-xlims[0] <= 1:
-                    axs.vlines(step_log, 0.01, 0.1, label = "Step")
-                else:
-                    axs.hist(step_log, range(int(max(steps))+1), label="Number of steps")
-            axs.plot(steps, FI_history, label="Fisher Information Trace")
-            if thresh_log is not None:
-                axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold")
-            axs.legend()
-            axs.set_yscale(scale)
-            axs.set_xlim(xlims)
+            if scale == "log" and xlims[0] == 0 and xlims[1] == 50:
+                fig, axs = plt.subplots(2, sharex="col")
+                axs[0].set_yscale(scale)
+                axs[0].set_xlim(xlims)
+                if step_log is not None:
+                    axs[1].hist(step_log, range(int(max(steps))), label="Number of steps")
+                axs[0].plot(steps, FI_history, label="Fisher Information Trace")
+                if thresh_log is not None:
+                    axs[1].plot(thresh_log["step"], thresh_log["threshold"], label="Threshold", alpha=0.5)
+                axs[0].legend()
+                axs[1].legend()
+            else:
+                fig, axs = plt.subplots(1)
+                axs.set_yscale(scale)
+                axs.set_xlim(xlims)
+                if step_log is not None:
+                    if xlims[1]-xlims[0] <= 1:
+                        axs.vlines(step_log, 0.2, 0.3, label="Step", color="k")
+                    else:
+                        axs.hist(step_log, range(int(max(steps))), label="Number of steps")
+                axs.plot(steps, FI_history, label="Fisher Information Trace")
+                if thresh_log is not None:
+                    axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold", alpha=0.5)
+                axs.legend()
             fig.savefig(os.path.join(path, name+'_history_'+scale+'_'+str(xlims[0])+'-'+str(xlims[1])+'.png'), bbox_inches='tight')
             plt.close()
     try:
