@@ -204,7 +204,7 @@ def plot_FI(steps, FI_history, path, name, thresh_log = [], step_log = None):
                 axs[0].set_yscale(scale)
                 axs[0].set_xlim(xlims)
                 if step_log is not None:
-                    axs[1].hist(step_log, range(int(max(steps))), label="Number of steps")
+                    axs[1].hist(step_log, range(ceil(max(steps))+1), label="Number of steps")
                 axs[0].plot(steps, FI_history, label="Fisher Information Trace")
                 if len(thresh_log) > 0:
                     axs[0].plot(thresh_log["step"], thresh_log["threshold"], label="Threshold", alpha=0.5)
@@ -218,7 +218,7 @@ def plot_FI(steps, FI_history, path, name, thresh_log = [], step_log = None):
                     if xlims[1]-xlims[0] <= 1:
                         axs.vlines(step_log, axs.get_ylim()[0], min(FI_history+thresh_log["threshold"]), label="Step", color="k")
                     else:
-                        axs.hist(step_log, range(int(max(steps))), label="Number of steps")
+                        axs.hist(step_log, range(ceil(max(steps)+1)), label="Number of steps")
                 axs.plot(steps, FI_history, label="Fisher Information Trace")
                 if len(thresh_log) > 0:
                     axs.plot(thresh_log["step"], thresh_log["threshold"], label="Threshold", alpha=0.5)
