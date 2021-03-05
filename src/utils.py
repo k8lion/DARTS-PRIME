@@ -184,7 +184,7 @@ def plot_loss_acc(loggers, path):
     axs[1].plot(loggers["val"]["step"], loggers["val"]["loss"], label="val CE loss (alpha)", color="tab:orange")
     axs[0].legend()
     axs[1].legend()
-    axs[2].plot(np.array(loggers[infer]["step"])+1, loggers[infer][infer_stat], label="infer "+infer_legend)
+    axs[2].plot(loggers[infer]["step"], loggers[infer][infer_stat], label="infer "+infer_legend)
     axs[2].legend()
     fig.savefig(os.path.join(path, 'loss_subplots.png'), bbox_inches='tight')
     plt.close()
@@ -216,7 +216,7 @@ def plot_FI(steps, FI_history, path, name, thresh_log = [], step_log = None):
                 axs.set_xlim(xlims)
                 if step_log is not None:
                     if xlims[1]-xlims[0] <= 1:
-                        axs.vlines(step_log, axs.get_ylim()[0], min(thresh_log["threshold"]), label="Step", color="k")
+                        axs.vlines(step_log, axs.get_ylim()[0], min(FI_history+thresh_log["threshold"]), label="Step", color="k")
                     else:
                         axs.hist(step_log, range(int(max(steps))), label="Number of steps")
                 axs.plot(steps, FI_history, label="Fisher Information Trace")
