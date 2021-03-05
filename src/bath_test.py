@@ -37,7 +37,7 @@ parser.add_argument('--depth_normalization', type=float, default=0.1, help='dept
 
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), args.model_path)
+args.save = os.path.join(utils.get_dir(), args.model_path[:-3])
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
