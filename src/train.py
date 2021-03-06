@@ -9,6 +9,7 @@ import logging
 import argparse
 import torch.nn as nn
 import torch.utils
+from genotypes import *
 import torchvision.datasets as dset
 import torch.backends.cudnn as cudnn
 
