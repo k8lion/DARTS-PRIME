@@ -119,7 +119,6 @@ def infer(test_queue, model, criterion, depth_norm):
         input = Variable(input.float()).cuda()
         target = Variable(target.float()).cuda(non_blocking=True)
 
-        #TODO: save logits and target to files
         logits, _ = model(input)
         loss = criterion(torch.squeeze(logits), target)
         loss_ = criterion(torch.squeeze(logits)*10, target*10)

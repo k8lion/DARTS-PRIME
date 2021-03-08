@@ -1,7 +1,8 @@
 import argparse
 import logging
 import sys
-
+import os
+import glob
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -9,7 +10,7 @@ import torch.nn as nn
 import torch.utils
 import torchvision.datasets as dset
 from torch.autograd import Variable
-
+from genotypes import *
 import utils
 from model import NetworkCIFAR as Network
 
@@ -29,9 +30,16 @@ parser.add_argument('--seed', type=int, default=0, help='random seed')
 parser.add_argument('--arch', type=str, default='DARTS', help='which architecture to use')
 args = parser.parse_args()
 
+args.save = os.path.join(utils.get_dir(), args.model_path[:-3])
+utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
+
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
+
+fh = logging.FileHandler(os.path.join(args.save, 'testlog.txt'))
+fh.setFormatter(logging.Formatter(log_format))
+logging.getLogger().addHandler(fh)
 
 CIFAR_CLASSES = 10
 
@@ -50,10 +58,22 @@ def main():
     logging.info('gpu device = %d' % args.gpu)
     logging.info("args = %s", args)
 
-    genotype = eval("genotypes.%s" % args.arch)
+    genotype_path = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'genotype.txt')
+    if os.path.isfile(genotype_path):
+        with open(genotype_path, "r") as f:
+            geno_raw = f.read()
+            genotype = eval(geno_raw)
+    else:
+        genoname = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], 'genoname.txt')
+        if os.path.isfile(genoname):
+            with open(genoname, "r") as f:
+                args.arch = f.read()
+            genotype = eval("genotypes.%s" % args.arch)
+        else:
+            genotype = eval("genotypes.ADMM")
     model = Network(args.init_channels, CIFAR_CLASSES, args.layers, args.auxiliary, genotype)
     model = model.cuda()
-    utils.load(model, args.model_path)
+    utils.load(model, os.path.join(utils.get_dir(),args.model_path))
 
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
