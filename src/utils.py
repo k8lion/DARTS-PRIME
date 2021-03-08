@@ -198,7 +198,7 @@ def plot_FI(steps, FI_history, path, name, thresh_log = [], step_log = None):
                 xlims[1] = max(steps)
             elif max(steps)-1 > xlims[1]:
                 continue
-            if scale == "log" and xlims[0] == 0 and orig_xmax == 50:
+            if xlims[0] == 0 and orig_xmax == 50:
                 fig, axs = plt.subplots(2, sharex="col")
                 axs[0].set_yscale(scale)
                 axs[0].set_xlim(xlims)
