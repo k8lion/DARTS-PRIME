@@ -48,6 +48,7 @@ parser.add_argument('--threshold_multiplier', type=float, default=1.1, help='thr
 parser.add_argument('--threshold_divider', type=float, default=0.2, help='threshold divider')
 parser.add_argument('--scheduled_zu', action='store_true', default=False, help='use dynamically scheduled z,u steps')
 parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0, help='use constant threshold (-1 to use dynamic threshold)')
+parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/admmsched-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
@@ -79,7 +80,7 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
-    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho)
+    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -129,6 +130,7 @@ def main():
         alpha_threshold = args.constant_alpha_threshold
     zu_threshold = args.init_zu_threshold
     alpha_counter = 0
+    ewma = -1
 
     for epoch in range(args.epochs):
         valid_iter = iter(valid_queue)
@@ -146,10 +148,11 @@ def main():
         print(torch.relu(model.alphas_reduce).tanh())
 
         # training
-        train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter = train(train_queue, valid_iter, model,
+        train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_iter, model,
                                                                                    architect, criterion, optimizer, lr,
                                                                                    loggers, alpha_threshold,
-                                                                                   zu_threshold, alpha_counter, args)
+                                                                                   zu_threshold, alpha_counter, ewma,
+                                                                                   args)
         logging.info('train_acc %f', train_acc)
 
         # validation
@@ -172,6 +175,7 @@ def main():
         utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
+        utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"], loggers['astep'])
         utils.plot_FI(model.FI_alpha_history_step, model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"], loggers['zustep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
@@ -191,7 +195,7 @@ def scale(FI_hist, alpha_hist):
     return scaled_FI
 
 
-def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, args):
+def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, ewma, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
@@ -202,10 +206,10 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         model.tick(1 / batches)
         alpha_step = False
 
-        print("FI: ", model.FI, " alpha_threshold: ", alpha_threshold)
+        print("FI: ", model.FI, "FI_ewma: ", model.FI_ewma, " alpha_threshold: ", alpha_threshold)
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
-        if (model.FI > 0.0) & (model.FI < alpha_threshold):
+        if (model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold):
             print("alpha step")
             # get a random minibatch from the search queue without replacement
             input_search, target_search = next(valid_iter)
@@ -268,7 +272,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
                 alpha_counter = 0
 
     utils.log_loss(loggers["val"], valid_loss, None, model.clock)
-    return top1.avg, objs.avg, alpha_threshold, zu_threshold, alpha_counter
+    return top1.avg, objs.avg, alpha_threshold, zu_threshold, alpha_counter, ewma
 
 
 def infer(valid_queue, model, criterion):

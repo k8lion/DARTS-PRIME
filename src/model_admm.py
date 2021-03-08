@@ -60,13 +60,14 @@ class Cell(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, rho, steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(self, C, num_classes, layers, criterion, rho, ewma=1.0, steps=4, multiplier=4, stem_multiplier=3):
         super(Network, self).__init__()
         self._C = C
         self._num_classes = num_classes
         self._layers = layers
         self._criterion = criterion
         self._rho = rho
+        self._ewma = ewma
         self._steps = steps
         self._multiplier = multiplier
         self._reduce = []
@@ -142,6 +143,7 @@ class Network(nn.Module):
         self.FI_reduce = torch.zeros_like(self.alphas_reduce).cpu()
         self.FI_normal = torch.zeros_like(self.alphas_normal).cpu()
         self.FI = 0.0
+        self.FI_ewma = -1.0
         self.FI_alpha = 0.0
 
         self.alphas_normal_history = {}
@@ -149,6 +151,7 @@ class Network(nn.Module):
         self.FI_normal_history = {}
         self.FI_reduce_history = {}
         self.FI_history = []
+        self.FI_ewma_history = []
         self.FI_alpha_history = []
         self.FI_alpha_history_step = []
         mm = 0
@@ -326,3 +329,9 @@ class Network(nn.Module):
 
             self.FI_alpha_history.append(float(self.FI_alpha))
             self.FI_alpha_history_step.append(self.clock)
+
+        if self.FI_ewma == -1:
+            self.FI_ewma = self.FI
+        else:
+            self.FI_ewma = self._ewma*self.fi + (1-self._ewma)*self.FI_ewma
+        self.FI_ewma_history.append(float(self.FI_ewma))
