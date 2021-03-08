@@ -105,7 +105,7 @@ def infer(test_queue, model, criterion):
         logits, _ = model(input)
         loss = criterion(logits, target)
 
-        prec1, prec5 = utils.accuracy(logits, target, topk=(1, ))
+        prec1 = utils.accuracy(logits, target, topk=(1, ))
         n = input.size(0)
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
