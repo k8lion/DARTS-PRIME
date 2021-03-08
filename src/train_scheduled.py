@@ -47,6 +47,7 @@ parser.add_argument('--init_zu_threshold', type=float, default=1.0, help='initia
 parser.add_argument('--threshold_multiplier', type=float, default=1.1, help='threshold multiplier')
 parser.add_argument('--threshold_divider', type=float, default=0.2, help='threshold divider')
 parser.add_argument('--scheduled_zu', action='store_true', default=False, help='use dynamically scheduled z,u steps')
+parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0, help='use constant threshold (-1 to use dynamic threshold)')
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), 'exp/admmsched-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
@@ -122,7 +123,10 @@ def main():
                "astep": [],
                "zustep": []}
 
-    alpha_threshold = args.init_alpha_threshold
+    if args.constant_alpha_threshold < 0:
+        alpha_threshold = args.init_alpha_threshold
+    else:
+        alpha_threshold = args.constant_alpha_threshold
     zu_threshold = args.init_zu_threshold
     alpha_counter = 0
 
@@ -211,11 +215,12 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
             #alpha_threshold = args.init_alpha_threshold
-            alpha_threshold *= 0.5
+            if args.constant_alpha_threshold < 0:
+                alpha_threshold *= 0.5
             alpha_step = True
             alpha_counter += 1
             loggers["astep"].append(model.clock)
-        else:
+        elif args.constant_alpha_threshold < 0:
             alpha_threshold *= 1.1
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
