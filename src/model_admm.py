@@ -333,5 +333,5 @@ class Network(nn.Module):
         if self.FI_ewma == -1:
             self.FI_ewma = self.FI
         else:
-            self.FI_ewma = self._ewma*self.fi + (1-self._ewma)*self.FI_ewma
+            self.FI_ewma = self._ewma*self.FI + (1-self._ewma)*self.FI_ewma
         self.FI_ewma_history.append(float(self.FI_ewma))
