@@ -15,7 +15,7 @@ from torch.autograd import Variable
 
 import utils
 from architect import Architect
-from model_admm import Network
+from model_admm_hard import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
@@ -144,8 +144,8 @@ def main():
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
 
-        print(torch.relu(model.alphas_normal).tanh())
-        print(torch.relu(model.alphas_reduce).tanh())
+        print(torch.relu(model.alphas_normal).clip(max=1.0))
+        print(torch.relu(model.alphas_reduce).clip(max=1.0))
 
         # training
         train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_iter, model,
