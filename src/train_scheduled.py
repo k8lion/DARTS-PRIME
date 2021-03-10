@@ -144,8 +144,8 @@ def main():
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
 
-        print(torch.relu(model.alphas_normal).clip(max=1.0))
-        print(torch.relu(model.alphas_reduce).clip(max=1.0))
+        print(torch.clamp(model.alphas_normal, min=0.1, max=1.0))
+        print(torch.clamp(model.alphas_reduce, min=0.1, max=1.0))
 
         # training
         train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_iter, model,
