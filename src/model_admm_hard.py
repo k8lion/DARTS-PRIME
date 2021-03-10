@@ -109,9 +109,9 @@ class Network(nn.Module):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
             if cell.reduction:
-                weights = torch.clip(self.alphas_reduce, min = 0.0, max=1.0)
+                weights = torch.clamp(self.alphas_reduce, min = 0.0, max=1.0)
             else:
-                weights = torch.clip(self.alphas_normal, min = 0.0, max=1.0)
+                weights = torch.clamp(self.alphas_normal, min = 0.0, max=1.0)
             s0, s1 = s1, cell(s0, s1, weights)
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
@@ -206,8 +206,8 @@ class Network(nn.Module):
 
     def genotype(self):
 
-        gene_normal, _ = self._parse(torch.clip(self.alphas_normal, min=0.0, max=1.0).data.cpu())
-        gene_reduce, _ = self._parse(torch.clip(self.alphas_reduce, min=0.0, max=1.0).data.cpu())
+        gene_normal, _ = self._parse(torch.clamp(self.alphas_normal, min=0.0, max=1.0).data.cpu())
+        gene_reduce, _ = self._parse(torch.clamp(self.alphas_reduce, min=0.0, max=1.0).data.cpu())
 
         concat = range(2 + self._steps - self._multiplier, self._steps + 2)
         genotype = Genotype(
@@ -219,7 +219,7 @@ class Network(nn.Module):
     def admm_loss(self, output, target):
         loss = self._criterion(output, target)
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
-            loss += self._rho / 2 * ((torch.clip(x, min=0.0, max=1.0) - z.cuda() + u.cuda()).mul(m)).norm()
+            loss += self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - z.cuda() + u.cuda()).mul(m)).norm()
         return loss
 
     def initialize_Z_and_U(self):
@@ -233,7 +233,7 @@ class Network(nn.Module):
         new_Z = ()
         idx = 0
         for x, u in zip(self._arch_parameters, self.U):
-            _, z = self._parse(torch.clip(x.detach().cpu().clone() + u, min=0.0, max=1.0).data.cpu())
+            _, z = self._parse(torch.clamp(x.detach().cpu().clone() + u, min=0.0, max=1.0).data.cpu())
             new_Z += (z,)
             idx += 1
             print(z)
@@ -268,8 +268,8 @@ class Network(nn.Module):
         mm = 0
         last_id = 1
         node_id = 0
-        normal = torch.clip(self.alphas_normal, min = 0.0, max=1.0).data.cpu().numpy()
-        reduce = torch.clip(self.alphas_reduce, min = 0.0, max=1.0).data.cpu().numpy()
+        normal = torch.clamp(self.alphas_normal, min = 0.0, max=1.0).data.cpu().numpy()
+        reduce = torch.clamp(self.alphas_reduce, min = 0.0, max=1.0).data.cpu().numpy()
 
         k, num_ops = normal.shape
         for i in range(k):
