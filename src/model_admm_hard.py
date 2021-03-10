@@ -109,9 +109,9 @@ class Network(nn.Module):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
             if cell.reduction:
-                weights = torch.relu(self.alphas_reduce).clip(max=1.0)
+                weights = torch.clip(self.alphas_reduce, min = 0.0, max=1.0)
             else:
-                weights = torch.relu(self.alphas_normal).clip(max=1.0)
+                weights = torch.clip(self.alphas_normal, min = 0.0, max=1.0)
             s0, s1 = s1, cell(s0, s1, weights)
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
@@ -268,8 +268,8 @@ class Network(nn.Module):
         mm = 0
         last_id = 1
         node_id = 0
-        normal = torch.relu(self.alphas_normal).clip(max=1.0).data.cpu().numpy()
-        reduce = torch.relu(self.alphas_reduce).clip(max=1.0).data.cpu().numpy()
+        normal = torch.clip(self.alphas_normal, min = 0.0, max=1.0).data.cpu().numpy()
+        reduce = torch.clip(self.alphas_reduce, min = 0.0, max=1.0).data.cpu().numpy()
 
         k, num_ops = normal.shape
         for i in range(k):
