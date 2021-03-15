@@ -51,7 +51,7 @@ class Cell(nn.Module):
         states = [s0, s1]
         offset = 0
         for i in range(self._steps):
-            s = self._bns[i](sum(self._ops[offset + j](h, weights[offset + j]) for j, h in enumerate(states)))
+            s = sum(self._ops[offset + j](self._bns[j](h), weights[offset + j]) for j, h in enumerate(states))
             offset += len(states)
             states.append(s)
 
