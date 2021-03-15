@@ -32,18 +32,22 @@ parser.add_argument('--model_path', type=str, default='saved_models', help='path
 parser.add_argument('--auxiliary', action='store_true', default=False, help='use auxiliary tower')
 parser.add_argument('--auxiliary_weight', type=float, default=0.4, help='weight for auxiliary loss')
 parser.add_argument('--cutout', action='store_true', default=False, help='use cutout')
+parser.add_argument('--test', action='store_true', default=False, help='automatically run on test split')
 parser.add_argument('--cutout_length', type=int, default=16, help='cutout length')
 parser.add_argument('--drop_path_prob', type=float, default=0.2, help='drop path probability')
-parser.add_argument('--save', type=str, default='EXP', help='experiment name')
+parser.add_argument('--save', type=str, default='', help='experiment name')
 parser.add_argument('--seed', type=int, default=0, help='random seed')
 parser.add_argument('--arch', type=str, default='DARTS', help='which architecture to use')
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 args = parser.parse_args()
 
+if len(args.save) == 0:
+    args.save = 'eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S"))
+
 if args.genotype_path is not None:
-    args.save = os.path.join(utils.get_dir(), args.genotype_path, 'eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+    args.save = os.path.join(utils.get_dir(), 'exp', args.genotype_path, args.save)
 else:
-    args.save = os.path.join(utils.get_dir(), 'exp/eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+    args.save = os.path.join(utils.get_dir(), args.save)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -122,6 +126,9 @@ def main():
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
+    if args.test:
+        os.system('python src/test.py --auxiliary --model_path %s' % os.path.join(args.save, 'weights.pt'))
+
 
 def train(train_queue, model, criterion, optimizer):
     objs = utils.AverageMeter()
@@ -179,3 +186,4 @@ def infer(valid_queue, model, criterion):
 
 if __name__ == '__main__':
     main()
+
