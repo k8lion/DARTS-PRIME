@@ -43,6 +43,8 @@ class Cell(nn.Module):
                 stride = 2 if reduction and j < 2 else 1
                 op = MixedOp(C, stride)
                 self._ops.append(op)
+        self._bns.append(nn.BatchNorm2d(C, affine=False))
+        self._bns.append(nn.BatchNorm2d(C, affine=False))
 
     def forward(self, s0, s1, weights):
         s0 = self.preprocess0(s0)
@@ -51,7 +53,7 @@ class Cell(nn.Module):
         states = [s0, s1]
         offset = 0
         for i in range(self._steps):
-            s = self._bns[i](sum(self._ops[offset + j](h, weights[offset + j]) for j, h in enumerate(states)))
+            s = sum(self._ops[offset + j](self._bns[j](h), weights[offset + j]) for j, h in enumerate(states))
             offset += len(states)
             states.append(s)
 
