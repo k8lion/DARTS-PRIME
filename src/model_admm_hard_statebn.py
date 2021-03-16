@@ -62,7 +62,7 @@ class Cell(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, rho, ewma=1.0, steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(self, C, num_classes, layers, criterion, rho, ewma=1.0, zuewma=1.0, steps=4, multiplier=4, stem_multiplier=3):
         super(Network, self).__init__()
         self._C = C
         self._num_classes = num_classes
@@ -70,6 +70,7 @@ class Network(nn.Module):
         self._criterion = criterion
         self._rho = rho
         self._ewma = ewma
+        self._zuewma = zuewma
         self._steps = steps
         self._multiplier = multiplier
         self._reduce = []
@@ -245,7 +246,7 @@ class Network(nn.Module):
     def update_U(self):
         new_U = ()
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
-            new_u = (u.cuda() + x - z.cuda()).mul(m).detach().cpu()
+            new_u = ((self._zuewma)*u.cuda() + (x - z.cuda())).mul(m).detach().cpu()
             new_U += (new_u,)
             print(new_u)
         self.U = new_U

@@ -49,6 +49,7 @@ parser.add_argument('--threshold_divider', type=float, default=0.2, help='thresh
 parser.add_argument('--scheduled_zu', action='store_true', default=False, help='use dynamically scheduled z,u steps')
 parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0, help='use constant threshold (-1 to use dynamic threshold)')
 parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
+parser.add_argument('--zuewma', type=float, default=1.0, help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
 args = parser.parse_args()
 
 if len(args.save) == 0:
