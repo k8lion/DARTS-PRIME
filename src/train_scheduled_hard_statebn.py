@@ -138,7 +138,7 @@ def main():
 
     for epoch in range(args.epochs):
         valid_iter = iter(valid_queue)
-        model.clear_U()
+        #model.clear_U()
 
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
