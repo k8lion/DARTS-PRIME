@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 import time
-
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -50,6 +49,7 @@ parser.add_argument('--scheduled_zu', action='store_true', default=False, help='
 parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0, help='use constant threshold (-1 to use dynamic threshold)')
 parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
 parser.add_argument('--zuewma', type=float, default=1.0, help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
+parser.add_argument('--dyno_split', action='store_true', default=False, help='use train/val split based on dynamic schedule')
 args = parser.parse_args()
 
 if len(args.save) == 0:
@@ -98,9 +98,14 @@ def main():
     datapath = os.path.join(utils.get_dir(), args.data)
     train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
 
+    if args.dyno_split:
+        freq = -np.log(args.threshold_multiplier)/np.log(args.threshold_divider)
+        args.train_portion = 1/(1+freq)
+        print(freq, args.train_portion)
     num_train = len(train_data)
     indices = list(range(num_train))
     split = int(np.floor(args.train_portion * num_train))
+
 
     train_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
