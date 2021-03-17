@@ -229,12 +229,12 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
             #alpha_threshold = args.init_alpha_threshold
             if args.constant_alpha_threshold < 0:
-                alpha_threshold *= 0.5
+                alpha_threshold *= args.threshold_divider
             alpha_step = True
             alpha_counter += 1
             loggers["astep"].append(model.clock)
         elif args.constant_alpha_threshold < 0:
-            alpha_threshold *= 1.1
+            alpha_threshold *= args.threshold_multiplier
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
         target = Variable(target, requires_grad=False).cuda(non_blocking=True)
