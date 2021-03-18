@@ -97,6 +97,7 @@ class Network(nn.Module):
             C_prev_prev, C_prev = C_prev, multiplier * C_curr
 
         self.global_pooling = nn.AdaptiveAvgPool2d(1)
+        print(C_prev)
         self.classifier = nn.Linear(C_prev, num_classes)
 
         self._initialize_alphas()
