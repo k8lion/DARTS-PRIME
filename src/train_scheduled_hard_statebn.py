@@ -142,7 +142,6 @@ def main():
     ewma = -1
 
     for epoch in range(args.epochs):
-        valid_iter = iter(valid_queue)
         #model.clear_U()
 
         scheduler.step()
@@ -157,7 +156,7 @@ def main():
         print(torch.clamp(model.alphas_reduce, min=0.1, max=1.0))
 
         # training
-        train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_iter, model,
+        train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_queue, model,
                                                                                    architect, criterion, optimizer, lr,
                                                                                    loggers, alpha_threshold,
                                                                                    zu_threshold, alpha_counter, ewma,
@@ -204,9 +203,11 @@ def scale(FI_hist, alpha_hist):
     return scaled_FI
 
 
-def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, ewma, args):
+def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, ewma, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
+    valid_iter = iter(valid_queue)
+    print("valid len:", len(valid_queue))
 
     batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
@@ -221,7 +222,11 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         if (model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold):
             print("alpha step")
             # get a random minibatch from the search queue without replacement
-            input_search, target_search = next(valid_iter)
+            try:
+                input_search, target_search = next(valid_iter)
+            except StopIteration:
+                valid_iter = iter(valid_queue)
+                input_search, target_search = next(valid_iter)
             input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
             target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
