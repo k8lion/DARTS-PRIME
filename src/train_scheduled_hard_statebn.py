@@ -39,17 +39,15 @@ parser.add_argument('--train_portion', type=float, default=0.5, help='portion of
 parser.add_argument('--unrolled', action='store_true', default=False, help='use one-step unrolled validation loss')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
-parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weight')
+parser.add_argument('--rho', type=float, default=1e-3, help='admm/prox relative weight')
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency (if not dynamically scheduled')
 parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
-parser.add_argument('--init_zu_threshold', type=float, default=1.0, help='initial zu threshold')
 parser.add_argument('--threshold_multiplier', type=float, default=1.1, help='threshold multiplier')
 parser.add_argument('--threshold_divider', type=float, default=0.2, help='threshold divider')
-parser.add_argument('--scheduled_zu', action='store_true', default=False, help='use dynamically scheduled z,u steps')
-parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0, help='use constant threshold (-1 to use dynamic threshold)')
 parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
 parser.add_argument('--zuewma', type=float, default=1.0, help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
 parser.add_argument('--dyno_split', action='store_true', default=False, help='use train/val split based on dynamic schedule')
+parser.add_argument('--reg', type=str, default='admm', help='reg/opt to use')
 args = parser.parse_args()
 
 if len(args.save) == 0:
@@ -84,7 +82,7 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
-    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma)
+    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma, args.reg)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -122,8 +120,6 @@ def main():
         optimizer, int(args.epochs), eta_min=args.learning_rate_min)
 
     architect = Architect(model, args)
-
-    model.initialize_Z_and_U()
 
     loggers = {"train": {"loss": [], "acc": [], "step": []},
                "val": {"loss": [], "acc": [], "step": []},
@@ -263,27 +259,28 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        if args.scheduled_zu:
-            #print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
-            loggers["zuth"]["threshold"].append(zu_threshold)
-            loggers["zuth"]["step"].append(model.clock)
-            if alpha_step & (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
-                print("zu step")
-                model.update_Z()
-                model.update_U()
-                #zu_threshold = args.init_zu_threshold
-                zu_threshold *= 0.5
-                loggers["zustep"].append(model.clock)
-                alpha_counter = 0
-                #reset alpha threshold?
-            elif alpha_step:
-                zu_threshold *= 1.1
-        else:
-            if (alpha_counter + 1) % args.admm_freq == 0:
-                model.update_Z()
-                model.update_U()
-                loggers["zustep"].append(model.clock)
-                alpha_counter = 0
+        if args.reg == "admm":
+            if args.scheduled_zu:
+                #print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
+                loggers["zuth"]["threshold"].append(zu_threshold)
+                loggers["zuth"]["step"].append(model.clock)
+                if alpha_step & (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
+                    print("zu step")
+                    model.update_Z()
+                    model.update_U()
+                    #zu_threshold = args.init_zu_threshold
+                    zu_threshold *= 0.5
+                    loggers["zustep"].append(model.clock)
+                    alpha_counter = 0
+                    #reset alpha threshold?
+                elif alpha_step:
+                    zu_threshold *= 1.1
+            else:
+                if (alpha_counter + 1) % args.admm_freq == 0:
+                    model.update_Z()
+                    model.update_U()
+                    loggers["zustep"].append(model.clock)
+                    alpha_counter = 0
 
     utils.log_loss(loggers["val"], valid_loss, None, model.clock)
     return top1.avg, objs.avg, alpha_threshold, zu_threshold, alpha_counter, ewma

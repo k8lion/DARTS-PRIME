@@ -60,12 +60,13 @@ class Cell(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, rho, ewma=1.0, zuewma=1.0, steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(self, C, num_classes, layers, criterion, rho, ewma=1.0, zuewma=1.0, reg="admm", steps=4, multiplier=4, stem_multiplier=3):
         super(Network, self).__init__()
         self._C = C
         self._num_classes = num_classes
         self._layers = layers
         self._criterion = criterion
+        self._reg = reg
         self._rho = rho
         self._ewma = ewma
         self._zuewma = zuewma
@@ -100,6 +101,9 @@ class Network(nn.Module):
 
         self._initialize_alphas()
 
+        if self._reg == "admm":
+            self.initialize_Z_and_U()
+
     def new(self):
         model_new = Network(self._C, self._num_classes, self._layers, self._criterion).cuda()
         for x, y in zip(model_new.arch_parameters(), self.arch_parameters()):
@@ -124,7 +128,10 @@ class Network(nn.Module):
 
     def _loss(self, input, target):
         logits = self(input)
-        return self.admm_loss(logits, target)
+        if self._reg == "admm":
+            return self.admm_loss(logits, target)
+        elif self._reg == "prox":
+            return self.prox_loss(logits, target)
 
     def _initialize_alphas(self):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
@@ -222,6 +229,12 @@ class Network(nn.Module):
         loss = self._criterion(output, target)
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
             loss += self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - z.cuda() + u.cuda()).mul(m)).norm()
+        return loss
+
+    def prox_loss(self, output, target):
+        loss = self._criterion(output, target)
+        for x in self._arch_parameters:
+            loss += self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - self._parse(torch.clamp(x, min=0.0, max=1.0))).norm())
         return loss
 
     def initialize_Z_and_U(self):
