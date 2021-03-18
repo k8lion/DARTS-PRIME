@@ -45,8 +45,10 @@ class Cell(nn.Module):
                 self._ops.append(op)
 
     def forward(self, s0, s1, weights):
+        print(s1.size())
         s0 = self.preprocess0(s0)
         s1 = self.preprocess1(s1)
+        print(s1.size())
 
         states = [s0, s1]
         offset = 0
