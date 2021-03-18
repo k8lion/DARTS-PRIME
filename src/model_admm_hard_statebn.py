@@ -118,7 +118,6 @@ class Network(nn.Module):
             else:
                 weights = torch.clamp(self.alphas_normal, min = 0.0, max=1.0)
             s0, s1 = s1, cell(s0, s1, weights)
-            print(s1.size())
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
         return logits
