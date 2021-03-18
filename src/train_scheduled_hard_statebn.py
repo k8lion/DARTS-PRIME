@@ -216,7 +216,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         model.tick(1 / batches)
         alpha_step = False
 
-        print("FI: ", model.FI, "FI_ewma: ", model.FI_ewma, " alpha_threshold: ", alpha_threshold)
+        #print("FI: ", model.FI, "FI_ewma: ", model.FI_ewma, " alpha_threshold: ", alpha_threshold)
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
         if (model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold):
@@ -264,7 +264,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
         if args.scheduled_zu:
-            print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
+            #print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
             loggers["zuth"]["threshold"].append(zu_threshold)
             loggers["zuth"]["step"].append(model.clock)
             if alpha_step & (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
