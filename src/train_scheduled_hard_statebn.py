@@ -230,7 +230,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
             alpha_step = True
             alpha_counter += 1
             loggers["astep"].append(model.clock)
-        elif args.dyno_schdule:
+        elif args.dyno_schedule:
             alpha_threshold *= args.threshold_multiplier
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
