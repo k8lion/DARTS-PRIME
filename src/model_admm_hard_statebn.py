@@ -127,6 +127,7 @@ class Network(nn.Module):
         self.clock += step
 
     def _loss(self, input, target):
+        print("reg", self._reg)
         logits = self(input)
         if self._reg == "admm":
             return self.admm_loss(logits, target)
@@ -234,7 +235,9 @@ class Network(nn.Module):
     def prox_loss(self, output, target):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
-            loss += self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - self._parse(torch.clamp(x, min=0.0, max=1.0))).norm())
+            prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - self._parse(torch.clamp(x, min=0.0, max=1.0))).norm())
+            print(prox_reg)
+            loss += prox_reg
         return loss
 
     def initialize_Z_and_U(self):
