@@ -151,7 +151,6 @@ COLORMAP = {
 }
 
 def log_loss(logger, loss, acc, step):
-    print(loss, acc, step)
     logger["loss"].append(loss)
     if acc is not None:
         logger["acc"].append(acc)
@@ -276,7 +275,6 @@ def save_file(recoder, path='./', steps=None):
                 try:
                     axs[dest, src + 2].plot(steps, v, label=op, color=COLORMAP[op])
                 except:
-                    print(len(steps), len(v))
                     axs[dest, src + 2].plot(v, label=op, color=COLORMAP[op])
         for i in range(0, 3):
             for j in range(2 + i, 5):
@@ -313,7 +311,6 @@ class BathymetryDataset(Dataset):
         self.depth_norm_factor = args.depth_normalization
         if "mixed" in csv_file:
             self.lengths = [len(self.csv_data[self.csv_data.iloc[:, 0].str.contains(source)]) for source in ["guyane", "saint_louis"]]
-            print(self.lengths)
         else:
             self.lengths = [len(self.csv_data)]
         self.to_filter = to_filter
@@ -329,7 +326,6 @@ class BathymetryDataset(Dataset):
         self.csv_data = self.csv_data.append(new_csv_data)
         if "mixed" in csv_file:
             self.lengths.extend([len(new_csv_data[new_csv_data.iloc[:, 0].str.contains(source)]) for source in ["guyane", "saint_louis"]])
-            print(self.lengths)
         else:
             self.lengths.append(len(new_csv_data))
         if to_balance:
