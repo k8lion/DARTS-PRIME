@@ -235,7 +235,7 @@ class Network(nn.Module):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
             _, disc = self._parse(torch.clamp(x, min=0.0, max=1.0).detach().cpu().clone())
-            prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.gpu()).norm())
+            prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.cuda()).norm())
             loss += prox_reg
 
         return loss
