@@ -129,10 +129,7 @@ def main():
                "astep": [],
                "zustep": []}
 
-    if args.constant_alpha_threshold < 0:
-        alpha_threshold = args.init_alpha_threshold
-    else:
-        alpha_threshold = args.constant_alpha_threshold
+    alpha_threshold = args.init_alpha_threshold
     zu_threshold = args.init_zu_threshold
     alpha_counter = 0
     ewma = -1
@@ -170,13 +167,13 @@ def main():
 
         utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'), steps=loggers["train"]["step"])
         utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'), steps=loggers["train"]["step"])
+        #utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'), steps=loggers["train"]["step"])
+        #utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'), steps=loggers["train"]["step"])
 
-        scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
-        scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
-        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
+        #scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
+        #scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
+        #utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
+        #utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
         utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"], loggers['astep'])
