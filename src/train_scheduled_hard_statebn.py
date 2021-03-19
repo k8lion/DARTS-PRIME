@@ -204,6 +204,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
 
     batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
+        print("_reg", model._reg)
         model.train()
         n = input.size(0)
         model.tick(1 / batches)
