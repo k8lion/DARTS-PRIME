@@ -237,6 +237,7 @@ class Network(nn.Module):
             _, disc = self._parse(torch.clamp(x, min=0.0, max=1.0).detach().cpu().clone())
             prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.gpu()).norm())
             loss += prox_reg
+
         return loss
 
     def initialize_Z_and_U(self):
