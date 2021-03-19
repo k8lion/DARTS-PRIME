@@ -47,6 +47,7 @@ parser.add_argument('--threshold_divider', type=float, default=0.2, help='thresh
 parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
 parser.add_argument('--zuewma', type=float, default=1.0, help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
 parser.add_argument('--dyno_split', action='store_true', default=False, help='use train/val split based on dynamic schedule')
+parser.add_argument('--dyno_schedule', action='store_true', default=False, help='use dynamic schedule')
 parser.add_argument('--reg', type=str, default='admm', help='reg/opt to use')
 args = parser.parse_args()
 
@@ -210,12 +211,13 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         #print("FI: ", model.FI, "FI_ewma: ", model.FI_ewma, " alpha_threshold: ", alpha_threshold)
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
-        if (model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold):
+        if (not args.dyno_schedule) | ((model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold)):
             print("alpha step")
             # get a random minibatch from the search queue without replacement
             try:
                 input_search, target_search = next(valid_iter)
             except StopIteration:
+                print("reset valid iter")
                 valid_iter = iter(valid_queue)
                 input_search, target_search = next(valid_iter)
             input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
@@ -228,7 +230,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
             alpha_step = True
             alpha_counter += 1
             loggers["astep"].append(model.clock)
-        else:
+        elif args.dyno_schdule:
             alpha_threshold *= args.threshold_multiplier
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
