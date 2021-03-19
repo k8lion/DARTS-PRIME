@@ -130,7 +130,6 @@ def main():
                "zustep": []}
 
     alpha_threshold = args.init_alpha_threshold
-    zu_threshold = args.init_zu_threshold
     alpha_counter = 0
     ewma = -1
 
@@ -149,11 +148,10 @@ def main():
         print(torch.clamp(model.alphas_reduce, min=0.1, max=1.0))
 
         # training
-        train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_queue, model,
-                                                                                   architect, criterion, optimizer, lr,
-                                                                                   loggers, alpha_threshold,
-                                                                                   zu_threshold, alpha_counter, ewma,
-                                                                                   args)
+        train_acc, train_obj, alpha_threshold, alpha_counter, ewma = train(train_queue, valid_queue, model,
+                                                                           architect, criterion, optimizer, lr,
+                                                                           loggers, alpha_threshold,
+                                                                           alpha_counter, ewma, args)
         logging.info('train_acc %f', train_acc)
 
         # validation
@@ -196,7 +194,7 @@ def scale(FI_hist, alpha_hist):
     return scaled_FI
 
 
-def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, ewma, args):
+def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, alpha_counter, ewma, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
     valid_iter = iter(valid_queue)
@@ -256,31 +254,14 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        if args.reg == "admm":
-            if args.scheduled_zu:
-                #print("FI_alpha: ", model.FI_alpha, " zu_threshold: ", zu_threshold)
-                loggers["zuth"]["threshold"].append(zu_threshold)
-                loggers["zuth"]["step"].append(model.clock)
-                if alpha_step & (model.FI_alpha > 0.0) & (model.FI_alpha < zu_threshold):
-                    print("zu step")
-                    model.update_Z()
-                    model.update_U()
-                    #zu_threshold = args.init_zu_threshold
-                    zu_threshold *= 0.5
-                    loggers["zustep"].append(model.clock)
-                    alpha_counter = 0
-                    #reset alpha threshold?
-                elif alpha_step:
-                    zu_threshold *= 1.1
-            else:
-                if (alpha_counter + 1) % args.admm_freq == 0:
-                    model.update_Z()
-                    model.update_U()
-                    loggers["zustep"].append(model.clock)
-                    alpha_counter = 0
+        if args.reg == "admm" & (alpha_counter + 1) % args.admm_freq == 0:
+            model.update_Z()
+            model.update_U()
+            loggers["zustep"].append(model.clock)
+            alpha_counter = 0
 
     utils.log_loss(loggers["val"], valid_loss, None, model.clock)
-    return top1.avg, objs.avg, alpha_threshold, zu_threshold, alpha_counter, ewma
+    return top1.avg, objs.avg, alpha_threshold, alpha_counter, ewma
 
 
 def infer(valid_queue, model, criterion):
