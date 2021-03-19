@@ -129,6 +129,7 @@ def main():
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
     if args.test:
+        torch.cuda.empty_cache()
         os.system('python src/test.py --auxiliary --model_path %s' % os.path.join(args.save, 'weights.pt'))
 
 
