@@ -30,7 +30,7 @@ parser.add_argument('--seed', type=int, default=0, help='random seed')
 parser.add_argument('--arch', type=str, default='DARTS', help='which architecture to use')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), args.model_path[:-3])
+args.save = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], "test")
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
