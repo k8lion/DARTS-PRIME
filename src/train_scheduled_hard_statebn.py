@@ -253,7 +253,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        if args.reg == "admm" & (alpha_counter + 1) % args.admm_freq == 0:
+        if (args.reg == "admm") & ((alpha_counter + 1) % args.admm_freq == 0):
             model.update_Z()
             model.update_U()
             loggers["zustep"].append(model.clock)
