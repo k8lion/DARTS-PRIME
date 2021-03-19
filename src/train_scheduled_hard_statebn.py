@@ -83,7 +83,6 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
-    print(args.reg)
     model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma, reg=args.reg)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
@@ -204,7 +203,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
 
     batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
-        print("_reg", model._reg)
         model.train()
         n = input.size(0)
         model.tick(1 / batches)

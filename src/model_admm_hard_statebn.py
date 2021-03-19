@@ -66,7 +66,6 @@ class Network(nn.Module):
         self._num_classes = num_classes
         self._layers = layers
         self._criterion = criterion
-        print("reg", reg)
         self._reg = reg
         self._rho = rho
         self._ewma = ewma
@@ -128,7 +127,6 @@ class Network(nn.Module):
         self.clock += step
 
     def _loss(self, input, target):
-        print("reg", self._reg)
         logits = self(input)
         if self._reg == "admm":
             return self.admm_loss(logits, target)
@@ -236,8 +234,7 @@ class Network(nn.Module):
     def prox_loss(self, output, target):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
-            prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - self._parse(torch.clamp(x, min=0.0, max=1.0))).norm())
-            print(prox_reg)
+            prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - self._parse(torch.clamp(x, min=0.0, max=1.0).detach().cpu().clone())).gpu().norm())
             loss += prox_reg
         return loss
 
