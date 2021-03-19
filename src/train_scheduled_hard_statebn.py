@@ -84,7 +84,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
     print(args.reg)
-    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma, args.reg)
+    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma, reg=args.reg)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 

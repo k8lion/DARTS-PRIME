@@ -66,7 +66,7 @@ class Network(nn.Module):
         self._num_classes = num_classes
         self._layers = layers
         self._criterion = criterion
-        print("reg")
+        print("reg", reg)
         self._reg = reg
         self._rho = rho
         self._ewma = ewma
