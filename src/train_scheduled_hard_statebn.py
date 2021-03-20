@@ -213,7 +213,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         loggers["ath"]["step"].append(model.clock)
         if (not args.dyno_schedule) or ((model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold)):
             print("alpha step")
-            # get a random minibatch from the search queue without replacement
             try:
                 input_search, target_search = next(valid_iter)
             except StopIteration:
@@ -225,7 +224,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
 
             valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
-            #alpha_threshold = args.init_alpha_threshold
             alpha_threshold *= args.threshold_divider
             alpha_step = True
             alpha_counter += 1
