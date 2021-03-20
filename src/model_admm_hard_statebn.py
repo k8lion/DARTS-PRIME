@@ -247,6 +247,8 @@ class Network(nn.Module):
     def proxadj_loss(self, output, target):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
+            if torch.isnan(x).any():
+                print(x)
             clamped_x = torch.clamp(x, min=0.0, max=1.0)
             _, disc = self._parse(clamped_x.detach().cpu().clone())
             prox_reg = clamped_x - disc.cuda()

@@ -50,6 +50,9 @@ class Architect(object):
         if self.entropy > 0:
             loss += self.entropy*(Categorical(probs = F.softmax(self.model.alphas_normal, dim=-1)).entropy().sum()+Categorical(probs = F.softmax(self.model.alphas_reduce, dim=-1)).entropy().sum())
         loss.backward()
+        for x in self.model._arch_parameters:
+            if torch.isnan(x).any():
+                print(x)
         return loss
 
     def _backward_step_unrolled(self, input_train, target_train, input_valid, target_valid, eta, network_optimizer):
