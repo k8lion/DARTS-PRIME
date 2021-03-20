@@ -249,11 +249,10 @@ class Network(nn.Module):
         for x in self._arch_parameters:
             clamped_x = torch.clamp(x, min=0.0, max=1.0)
             _, disc = self._parse(clamped_x.detach().cpu().clone())
-            prox_reg = self._rho / 2 * (clamped_x - disc.cuda()).norm()
+            prox_reg = clamped_x - disc.cuda()
             adj_reg = torch.pow((torch.pow(clamped_x, math.log(2)/math.log(self._num_ops)) - 1/2), 2)
-            print(prox_reg, adj_reg)
-            loss += prox_reg*adj_reg
-            print(prox_reg*adj_reg)
+            loss +=  self._rho / 2 * (prox_reg*adj_reg).norm()
+            print(self._rho / 2 * (prox_reg*adj_reg).norm())
         return loss
 
     def initialize_Z_and_U(self):
