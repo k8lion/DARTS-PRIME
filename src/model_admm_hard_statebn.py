@@ -4,6 +4,7 @@ from torch.autograd import Variable
 from genotypes import Genotype
 from genotypes import ADMMPRIMITIVES
 from operations import *
+import math
 
 
 class MixedOp(nn.Module):
@@ -73,6 +74,7 @@ class Network(nn.Module):
         self._steps = steps
         self._multiplier = multiplier
         self._reduce = []
+        self._num_ops = len(ADMMPRIMITIVES)
         self.clock = 0.0
 
         C_curr = stem_multiplier * C
@@ -132,6 +134,8 @@ class Network(nn.Module):
             return self.admm_loss(logits, target)
         elif self._reg == "prox":
             return self.prox_loss(logits, target)
+        elif self._reg == "proxadj":
+            return self.proxadj_loss(logits, target)
 
     def _initialize_alphas(self):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
@@ -237,7 +241,18 @@ class Network(nn.Module):
             _, disc = self._parse(torch.clamp(x, min=0.0, max=1.0).detach().cpu().clone())
             prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.cuda()).norm())
             loss += prox_reg
-
+            print(prox_reg)
+        return loss
+    
+    def proxadj_loss(self, output, target):
+        loss = self._criterion(output, target)
+        for x in self._arch_parameters:
+            clamped_x = torch.clamp(x, min=0.0, max=1.0
+            _, disc = self._parse(clamped_x.detach().cpu().clone())
+            prox_reg = self._rho / 2 * (clamped_x - disc.cuda()).norm())
+            adj_reg = (clamped_x**(math.log(2)/math.log(self._num_ops)) - 1/2)**2
+            loss += prox_reg*adj_reg
+            print(prox_reg)
         return loss
 
     def initialize_Z_and_U(self):
