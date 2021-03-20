@@ -253,6 +253,8 @@ class Network(nn.Module):
             adj_reg = torch.pow((torch.pow(clamped_x, math.log(2)/math.log(self._num_ops)) - 1/2), 2)
             loss +=  self._rho / 2 * (prox_reg*adj_reg).norm()
             print(self._rho / 2 * (prox_reg*adj_reg).norm())
+            if torch.isnan(self._rho / 2 * (prox_reg*adj_reg).norm()).any():
+                print(prox_reg, adj_reg)
         return loss
 
     def initialize_Z_and_U(self):
