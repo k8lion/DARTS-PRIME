@@ -52,6 +52,7 @@ class Architect(object):
         loss.backward()
         for x in self.model._arch_parameters:
             if torch.isnan(x).any():
+                print(loss)
                 print(x)
         return loss
 

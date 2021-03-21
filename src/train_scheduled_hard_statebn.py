@@ -135,7 +135,7 @@ def main():
     ewma = -1
 
     for epoch in range(args.epochs):
-        #model.clear_U()
+        # model.clear_U()
 
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
@@ -145,8 +145,8 @@ def main():
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
 
-        print(torch.clamp(model.alphas_normal, min=0.1, max=1.0))
-        print(torch.clamp(model.alphas_reduce, min=0.1, max=1.0))
+        print(torch.clamp(model.alphas_normal, min=0.0, max=1.0))
+        print(torch.clamp(model.alphas_reduce, min=0.0, max=1.0))
 
         # training
         train_acc, train_obj, alpha_threshold, alpha_counter, ewma = train(train_queue, valid_queue, model,
