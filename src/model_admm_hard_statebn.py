@@ -76,6 +76,7 @@ class Network(nn.Module):
         self._reduce = []
         self._num_ops = len(ADMMPRIMITIVES)
         self.clock = 0.0
+        self.total_epochs = 50
 
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
@@ -251,9 +252,10 @@ class Network(nn.Module):
             prox_reg = clamped_x - disc.cuda()
             adj_reg = torch.pow(
                 (torch.pow(torch.clamp(x, min=1e-4, max=1.0), math.log(2) / math.log(self._num_ops)) - 1 / 2), 2)
-            loss += self._rho / 2 * (prox_reg * (1 - adj_reg)).norm()
-            print(self._rho / 2 * (prox_reg * (1 - adj_reg)).norm())
-            if torch.isnan(self._rho / 2 * (prox_reg * (1 - adj_reg)).norm()).any():
+            prog = self.clock / self.total_epochs
+            loss += self._rho / 2 * (prox_reg * ((1 - prog) * adj_reg + prog)).norm()
+            print(self._rho / 2 * (prox_reg * ((1 - prog) * adj_reg + prog)).norm())
+            if torch.isnan(self._rho / 2 * (prox_reg * ((1 - prog) * adj_reg + prog)).norm()).any():
                 print(prox_reg, adj_reg)
         return loss
 
