@@ -161,8 +161,6 @@ class Network(nn.Module):
 
         self.alphas_normal_history = {}
         self.alphas_reduce_history = {}
-        self.FI_normal_history = {}
-        self.FI_reduce_history = {}
         self.FI_history = []
         self.FI_ewma_history = []
         self.FI_alpha_history = []
@@ -174,8 +172,6 @@ class Network(nn.Module):
             for j in range(num_ops):
                 self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
                 self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
-                self.FI_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
-                self.FI_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
             if mm == last_id:
                 mm = 0
                 last_id += 1
@@ -340,26 +336,6 @@ class Network(nn.Module):
                     self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / (self._layers - len(self._reduce))
 
         self.FI_history.append(float(self.FI))
-
-        mm = 0
-        last_id = 1
-        node_id = 0
-        normal = self.FI_normal.data.cpu().numpy()
-        reduce = self.FI_reduce.data.cpu().numpy()
-
-        k, num_ops = normal.shape
-        for i in range(k):
-            for j in range(num_ops):
-                self.FI_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
-                    float(normal[i][j]))
-                self.FI_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
-                    float(reduce[i][j]))
-            if mm == last_id:
-                mm = 0
-                last_id += 1
-                node_id += 1
-            else:
-                mm += 1
 
         if alpha_step:
             for p in self._arch_parameters:
