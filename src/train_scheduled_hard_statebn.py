@@ -211,7 +211,8 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
 
             valid_loss = architect.step(input_search, target_search)
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
-            alpha_threshold *= args.threshold_divider
+            if args.dyno_schedule:
+                alpha_threshold *= args.threshold_divider
             alpha_step = True
             alpha_counter += 1
             loggers["astep"].append(model.clock)
