@@ -228,7 +228,7 @@ class Network(nn.Module):
     def admm_loss(self, output, target):
         loss = self._criterion(output, target)
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
-            loss += self.clock / 50. * self._rho / 2 * (
+            loss += self._rho / 2 * (
                 (torch.clamp(x, min=0.0, max=1.0) - z.cuda() + u.cuda()).mul(m)).norm()
         return loss
 
@@ -236,7 +236,7 @@ class Network(nn.Module):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
             _, disc = self._parse(torch.clamp(x, min=0.0, max=1.0).detach().cpu().clone())
-            prox_reg = self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.cuda()).norm())
+            prox_reg = self.clock / 50. * self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.cuda()).norm())
             loss += prox_reg
             print(prox_reg)
         return loss
