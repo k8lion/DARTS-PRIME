@@ -251,9 +251,9 @@ class Network(nn.Module):
             prox_reg = clamped_x - disc.cuda()
             adj_reg = torch.pow(
                 (torch.pow(torch.clamp(x, min=1e-4, max=1.0), math.log(2) / math.log(self._num_ops)) - 1 / 2), 2)
-            loss +=  self._rho / 2 * (prox_reg*adj_reg).norm()
-            print(self._rho / 2 * (prox_reg*adj_reg).norm())
-            if torch.isnan(self._rho / 2 * (prox_reg*adj_reg).norm()).any():
+            loss += self._rho / 2 * (prox_reg * (1 - adj_reg)).norm()
+            print(self._rho / 2 * (prox_reg * (1 - adj_reg)).norm())
+            if torch.isnan(self._rho / 2 * (prox_reg * (1 - adj_reg)).norm()).any():
                 print(prox_reg, adj_reg)
         return loss
 
