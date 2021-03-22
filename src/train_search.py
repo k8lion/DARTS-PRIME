@@ -33,6 +33,7 @@ parser.add_argument('--model_path', type=str, default='saved_models', help='path
 parser.add_argument('--cutout', action='store_true', default=False, help='use cutout')
 parser.add_argument('--cutout_length', type=int, default=16, help='cutout length')
 parser.add_argument('--drop_path_prob', type=float, default=0.3, help='drop path probability')
+parser.add_argument('--save', type=str, default='', help='experiment name')
 parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 parser.add_argument('--train_portion', type=float, default=0.5, help='portion of training data')
@@ -42,7 +43,11 @@ parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weigh
 parser.add_argument('--entropy', type=float, default=0.0, help='weight of entropy regularization')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/search-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+if len(args.save) == 0:
+    args.save = os.path.join(utils.get_dir(),
+                             'exp/darts-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+else:
+    args.save = os.path.join(utils.get_dir(), 'exp', args.save)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
