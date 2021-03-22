@@ -13,7 +13,7 @@ PRIMITIVES = [
     'dil_conv_5x5'
 ]
 
-ADMMPRIMITIVES = [
+CRBPRIMITIVES = [
     'max_pool_3x3',
     'avg_pool_3x3',
     'skip_connect',

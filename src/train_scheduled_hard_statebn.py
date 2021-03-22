@@ -36,23 +36,26 @@ parser.add_argument('--save', type=str, default='', help='experiment name')
 parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
 parser.add_argument('--train_portion', type=float, default=0.5, help='portion of training data')
-parser.add_argument('--unrolled', action='store_true', default=False, help='use one-step unrolled validation loss')
+parser.add_argument('--crb', action='store_true', default=False, help='use CRB activation instead of softmax')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
 parser.add_argument('--rho', type=float, default=1e-3, help='admm/prox relative weight')
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency (if not dynamically scheduled')
 parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
-parser.add_argument('--threshold_multiplier', type=float, default=1.1, help='threshold multiplier')
-parser.add_argument('--threshold_divider', type=float, default=0.2, help='threshold divider')
+parser.add_argument('--threshold_multiplier', type=float, default=1.05, help='threshold multiplier')
+parser.add_argument('--schedfreq', type=float, default=1.0, help='w steps per each alpha step')
 parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
-parser.add_argument('--zuewma', type=float, default=1.0, help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
-parser.add_argument('--dyno_split', action='store_true', default=False, help='use train/val split based on dynamic schedule')
+parser.add_argument('--zuewma', type=float, default=1.0,
+                    help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
+parser.add_argument('--dyno_split', action='store_true', default=False,
+                    help='use train/val split based on dynamic schedule')
 parser.add_argument('--dyno_schedule', action='store_true', default=False, help='use dynamic schedule')
-parser.add_argument('--reg', type=str, default='admm', help='reg/opt to use')
+parser.add_argument('--reg', type=str, default='darts', help='reg/opt to use')
 args = parser.parse_args()
 
 if len(args.save) == 0:
-    args.save = os.path.join(utils.get_dir(), 'exp/admmschedhbn-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+    args.save = os.path.join(utils.get_dir(),
+                             'exp/admmschedhbn-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 else:
     args.save = os.path.join(utils.get_dir(), 'exp', args.save)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
@@ -79,11 +82,18 @@ def main():
     cudnn.enabled = True
     torch.cuda.manual_seed(args.seed)
     logging.info('gpu device = %d' % args.gpu)
+
+    if args.dyno_schedule:
+        args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
+    if args.dyno_split:
+        args.train_portion = 1 / (1 + args.schedfreq)
+
     logging.info("args = %s", args)
 
     criterion = nn.CrossEntropyLoss()
     criterion = criterion.cuda()
-    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.ewma, reg=args.reg)
+    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.crb, args.epochs,
+                    args.ewma, reg=args.reg)
     model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -97,14 +107,9 @@ def main():
     datapath = os.path.join(utils.get_dir(), args.data)
     train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
 
-    if args.dyno_split:
-        freq = -np.log(args.threshold_multiplier)/np.log(args.threshold_divider)
-        args.train_portion = 1/(1+freq)
-        print(freq, args.train_portion)
     num_train = len(train_data)
     indices = list(range(num_train))
     split = int(np.floor(args.train_portion * num_train))
-
 
     train_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
@@ -135,8 +140,6 @@ def main():
     ewma = -1
 
     for epoch in range(args.epochs):
-        # model.clear_U()
-
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
 
@@ -145,12 +148,12 @@ def main():
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
 
-        print(torch.clamp(model.alphas_normal, min=0.0, max=1.0))
-        print(torch.clamp(model.alphas_reduce, min=0.0, max=1.0))
+        print(model.activate(model.alphas_normal))
+        print(model.activate(model.alphas_reduce))
 
         # training
         train_acc, train_obj, alpha_threshold, alpha_counter, ewma = train(train_queue, valid_queue, model,
-                                                                           architect, criterion, optimizer, lr,
+                                                                           architect, criterion, optimizer,
                                                                            loggers, alpha_threshold,
                                                                            alpha_counter, ewma, args)
         logging.info('train_acc %f', train_acc)
@@ -162,17 +165,8 @@ def main():
 
         utils.plot_loss_acc(loggers, args.save)
 
-        #model.update_history()
-
         utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'), steps=loggers["train"]["step"])
         utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'), steps=loggers["train"]["step"])
-        #utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'), steps=loggers["train"]["step"])
-        #utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'), steps=loggers["train"]["step"])
-
-        #scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
-        #scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
-        #utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
-        #utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
         utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"], loggers['astep'])
@@ -188,14 +182,8 @@ def main():
     f.close()
 
 
-def scale(FI_hist, alpha_hist):
-    scaled_FI = {}
-    for k in FI_hist.keys():
-        scaled_FI[k] = np.divide(np.array(FI_hist[k]), np.array(alpha_hist[k][1:]))
-    return scaled_FI
-
-
-def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, alpha_counter, ewma, args):
+def train(train_queue, valid_queue, model, architect, criterion, optimizer, loggers, alpha_threshold, alpha_counter,
+          ewma, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
     valid_iter = iter(valid_queue)
@@ -208,7 +196,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
         model.tick(1 / batches)
         alpha_step = False
 
-        #print("FI: ", model.FI, "FI_ewma: ", model.FI_ewma, " alpha_threshold: ", alpha_threshold)
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
         if (not args.dyno_schedule) or ((model.FI_ewma > 0.0) & (model.FI_ewma < alpha_threshold)):
@@ -222,7 +209,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr, 
             input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
             target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
-            valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+            valid_loss = architect.step(input_search, target_search)
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
             alpha_threshold *= args.threshold_divider
             alpha_step = True

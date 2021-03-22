@@ -1,8 +1,8 @@
-from copy import deepcopy
+import torch.nn.functional as F
 from torch.autograd import Variable
 
 from genotypes import Genotype
-from genotypes import ADMMPRIMITIVES
+from genotypes import CRBPRIMITIVES, PRIMITIVES
 from operations import *
 import math
 
@@ -12,7 +12,7 @@ class MixedOp(nn.Module):
     def __init__(self, C, stride):
         super(MixedOp, self).__init__()
         self._ops = nn.ModuleList()
-        for primitive in ADMMPRIMITIVES:
+        for primitive in CRBPRIMITIVES:
             op = OPS[primitive](C, stride, False)
             if 'pool' in primitive:
                 op = nn.Sequential(op, nn.BatchNorm2d(C, affine=False))
@@ -61,7 +61,8 @@ class Cell(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, rho, ewma=1.0, zuewma=1.0, reg="admm", steps=4, multiplier=4, stem_multiplier=3):
+    def __init__(self, C, num_classes, layers, criterion, rho, crb, epochs, ewma=1.0, zuewma=1.0, reg="admm", steps=4,
+                 multiplier=4, stem_multiplier=3):
         super(Network, self).__init__()
         self._C = C
         self._num_classes = num_classes
@@ -74,9 +75,14 @@ class Network(nn.Module):
         self._steps = steps
         self._multiplier = multiplier
         self._reduce = []
-        self._num_ops = len(ADMMPRIMITIVES)
+        self._crb = crb
+        if self._crb:
+            self.primitives = CRBPRIMITIVES
+        else:
+            self.primitives = PRIMITIVES
+        self._num_ops = len(self.primitives)
         self.clock = 0.0
-        self.total_epochs = 50
+        self.total_epochs = epochs
 
         C_curr = stem_multiplier * C
         self.stem = nn.Sequential(
@@ -108,19 +114,19 @@ class Network(nn.Module):
         if self._reg == "admm":
             self.initialize_Z_and_U()
 
-    def new(self):
-        model_new = Network(self._C, self._num_classes, self._layers, self._criterion).cuda()
-        for x, y in zip(model_new.arch_parameters(), self.arch_parameters()):
-            x.data.copy_(y.data)
-        return model_new
+    def activate(self, alphas):
+        if self._crb:
+            return torch.clamp(alphas, min=0.0, max=1.0)
+        else:
+            return F.softmax(alphas, dim=-1)
 
     def forward(self, input):
         s0 = s1 = self.stem(input)
         for i, cell in enumerate(self.cells):
             if cell.reduction:
-                weights = torch.clamp(self.alphas_reduce, min = 0.0, max=1.0)
+                weights = self.activate(self.alphas_reduce)
             else:
-                weights = torch.clamp(self.alphas_normal, min = 0.0, max=1.0)
+                weights = self.activate(self.alphas_normal)
             s0, s1 = s1, cell(s0, s1, weights)
         out = self.global_pooling(s1)
         logits = self.classifier(out.view(out.size(0), -1))
@@ -133,6 +139,8 @@ class Network(nn.Module):
         logits = self(input)
         if self._reg == "admm":
             return self.admm_loss(logits, target)
+        elif self._reg == "darts":
+            return self.darts_loss(logits, target)
         elif self._reg == "prox":
             return self.prox_loss(logits, target)
         elif self._reg == "proxadj":
@@ -140,10 +148,15 @@ class Network(nn.Module):
 
     def _initialize_alphas(self):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
-        num_ops = len(ADMMPRIMITIVES)
 
-        self.alphas_normal = Variable((1 / num_ops + 1e-3 * torch.randn(k, num_ops)).cuda(), requires_grad=True)
-        self.alphas_reduce = Variable((1 / num_ops + 1e-3 * torch.randn(k, num_ops)).cuda(), requires_grad=True)
+        if self._crb:
+            self.alphas_normal = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)).cuda(),
+                                          requires_grad=True)
+            self.alphas_reduce = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)).cuda(),
+                                          requires_grad=True)
+        else:
+            self.alphas_normal = Variable(1e-3 * torch.randn(k, self._num_ops).cuda(), requires_grad=True)
+            self.alphas_reduce = Variable(1e-3 * torch.randn(k, self._num_ops).cuda(), requires_grad=True)
         self._arch_parameters = [
             self.alphas_normal,
             self.alphas_reduce,
@@ -170,9 +183,9 @@ class Network(nn.Module):
         last_id = 1
         node_id = 0
         for i in range(k):
-            for j in range(num_ops):
-                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
-                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])] = []
+            for j in range(self._num_ops):
+                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), self.primitives[j])] = []
+                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), self.primitives[j])] = []
             if mm == last_id:
                 mm = 0
                 last_id += 1
@@ -182,11 +195,12 @@ class Network(nn.Module):
         self.update_history()
 
     def mask_alphas(self):
-        with torch.no_grad():
-            for param, mask in zip(self._arch_parameters, self._arch_mask):
-                mask[param <= 0.0] = 0.0
-                param[param <= 0.0] = 0.0
-                param.mul_(mask)
+        if self._crb:
+            with torch.no_grad():
+                for param, mask in zip(self._arch_parameters, self._arch_mask):
+                    mask[param <= 0.0] = 0.0
+                    param[param <= 0.0] = 0.0
+                    param.mul_(mask)
 
     def arch_parameters(self):
         return self._arch_parameters
@@ -208,7 +222,7 @@ class Network(nn.Module):
                 for k in range(len(W[j])):
                     if k_best is None or W[j][k] > W[j][k_best]:
                         k_best = k
-                gene.append((ADMMPRIMITIVES[k_best], j))
+                gene.append((self.primitives[k_best], j))
                 z[j+start, k_best] = 1.0
             start = end
             n += 1
@@ -216,8 +230,8 @@ class Network(nn.Module):
 
     def genotype(self):
 
-        gene_normal, _ = self._parse(torch.clamp(self.alphas_normal, min=0.0, max=1.0).data.cpu())
-        gene_reduce, _ = self._parse(torch.clamp(self.alphas_reduce, min=0.0, max=1.0).data.cpu())
+        gene_normal, _ = self._parse(self.activate(self.alphas_normal).data.cpu())
+        gene_reduce, _ = self._parse(self.activate(self.alphas_reduce).data.cpu())
 
         concat = range(2 + self._steps - self._multiplier, self._steps + 2)
         genotype = Genotype(
@@ -230,14 +244,17 @@ class Network(nn.Module):
         loss = self._criterion(output, target)
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
             loss += self._rho / 2 * (
-                (torch.clamp(x, min=0.0, max=1.0) - z.cuda() + u.cuda()).mul(m)).norm()
+                (self.activate(x) - z.cuda() + u.cuda()).mul(m)).norm()
         return loss
+
+    def darts_loss(self, output, target):
+        return self._criterion(output, target)
 
     def prox_loss(self, output, target):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
-            _, disc = self._parse(torch.clamp(x, min=0.0, max=1.0).detach().cpu().clone())
-            prox_reg = self.clock / 50. * self._rho / 2 * ((torch.clamp(x, min=0.0, max=1.0) - disc.cuda()).norm())
+            _, disc = self._parse(self.activate(x).detach().cpu().clone())
+            prox_reg = self.clock / 50. * self._rho / 2 * ((self.activate(x) - disc.cuda()).norm())
             loss += prox_reg
             print(prox_reg)
         return loss
@@ -247,11 +264,12 @@ class Network(nn.Module):
         for x in self._arch_parameters:
             if torch.isnan(x).any():
                 print(x)
-            clamped_x = torch.clamp(x, min=0.0, max=1.0)
+            clamped_x = self.activate(x)
             _, disc = self._parse(clamped_x.detach().cpu().clone())
             prox_reg = clamped_x - disc.cuda()
             adj_reg = torch.pow(
-                (torch.pow(torch.clamp(x, min=1e-4, max=1.0), math.log(2) / math.log(self._num_ops)) - 1 / 2), 2)
+                (torch.pow(torch.clamp(clamped_x, min=1e-4, max=1.0), math.log(2) / math.log(self._num_ops)) - 1 / 2),
+                2)
             prog = self.clock / self.total_epochs
             loss += self._rho / 2 * (prox_reg * ((1 - prog) * adj_reg + prog)).norm()
             print(self._rho / 2 * (prox_reg * ((1 - prog) * adj_reg + prog)).norm())
@@ -270,7 +288,7 @@ class Network(nn.Module):
         new_Z = ()
         idx = 0
         for x, u in zip(self._arch_parameters, self.U):
-            _, z = self._parse(torch.clamp(x.detach().cpu().clone() + u, min=0.0, max=1.0).data.cpu())
+            _, z = self._parse(self.activate(x.detach().cpu().clone() + u).data.cpu())
             new_Z += (z,)
             idx += 1
             print(z)
@@ -305,15 +323,15 @@ class Network(nn.Module):
         mm = 0
         last_id = 1
         node_id = 0
-        normal = torch.clamp(self.alphas_normal, min = 0.0, max=1.0).data.cpu().numpy()
-        reduce = torch.clamp(self.alphas_reduce, min = 0.0, max=1.0).data.cpu().numpy()
+        normal = self.activate(self.alphas_normal).data.cpu().numpy()
+        reduce = self.activate(self.alphas_reduce).data.cpu().numpy()
 
-        k, num_ops = normal.shape
+        k, _ = normal.shape
         for i in range(k):
-            for j in range(num_ops):
-                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
+            for j in range(self._num_ops):
+                self.alphas_normal_history['edge: {}, op: {}'.format((node_id, mm), self.primitives[j])].append(
                     float(normal[i][j]))
-                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), ADMMPRIMITIVES[j])].append(
+                self.alphas_reduce_history['edge: {}, op: {}'.format((node_id, mm), self.primitives[j])].append(
                     float(reduce[i][j]))
             if mm == last_id:
                 mm = 0
@@ -322,8 +340,6 @@ class Network(nn.Module):
             else:
                 mm += 1
 
-    #TODO document
-    #TODO turn into hook
     def track_FI(self, alpha_step = False):
         self.FI_reduce *= 0.0
         self.FI_normal *= 0.0
