@@ -267,7 +267,7 @@ class Network(nn.Module):
             clamped_x = self.activate(x)
             _, disc = self._parse(clamped_x.detach().cpu().clone())
             prox_reg = clamped_x - disc.cuda()
-            adj_reg = torch.pow(
+            adj_reg = 4 * torch.pow(
                 (torch.pow(torch.clamp(clamped_x, min=1e-4, max=1.0), math.log(2) / math.log(self._num_ops)) - 1 / 2),
                 2)
             prog = self.clock / self.total_epochs
