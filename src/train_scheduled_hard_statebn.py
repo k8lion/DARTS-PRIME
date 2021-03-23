@@ -225,6 +225,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         logits = model(input)
         loss = criterion(logits, target)
         loss.backward()
+        model.track_FI()
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
         model.mask_alphas()
