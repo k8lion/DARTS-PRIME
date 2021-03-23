@@ -87,7 +87,7 @@ def main():
         args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
         print(args.threshold_divider, -np.log(args.threshold_multiplier) / np.log(args.threshold_divider))
     if args.dyno_split:
-        args.train_portion = 1 / (1 + args.schedfreq)
+        args.train_portion = 1 - 1 / (1 + args.schedfreq)
 
     logging.info("args = %s", args)
 
@@ -193,6 +193,8 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         model.train()
         n = input.size(0)
         model.tick(1 / batches)
+
+        valid_loss = 0.0
 
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
