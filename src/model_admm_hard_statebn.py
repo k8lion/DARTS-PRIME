@@ -212,13 +212,14 @@ class Network(nn.Module):
             end = start + n
             W = wnp[start:end].copy()
             edges = sorted(range(i + 2),
-                           key=lambda x: -max(W[x][k] for k in range(len(W[x]))))[
+                           key=lambda x: -max(W[x][k] for k in range(len(W[x])) if self.primitives[k] != "none"))[
                     :2]
             for j in edges:
                 k_best = None
                 for k in range(len(W[j])):
-                    if k_best is None or W[j][k] > W[j][k_best]:
-                        k_best = k
+                    if self.primitives[k] != "none":
+                        if k_best is None or W[j][k] > W[j][k_best]:
+                            k_best = k
                 gene.append((self.primitives[k_best], j))
                 z[j+start, k_best] = 1.0
             start = end
