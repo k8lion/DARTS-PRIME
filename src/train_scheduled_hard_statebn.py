@@ -198,7 +198,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
 
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
-        if (not args.dyno_schedule and step % int(args.schedfreq) == 0) or (
+        if (not args.dyno_schedule and (step + 1) % int(args.schedfreq) == 0) or (
                 model.FI_ewma > 0.0 and model.FI_ewma < alpha_threshold):
             print("alpha step")
             try:
