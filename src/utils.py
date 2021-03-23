@@ -150,11 +150,22 @@ COLORMAP = {
     'dil_conv_5x5': blue(0.9)
 }
 
+NODE_LABELS = {
+    "-2": "c_{k-2}",
+    "-1": "c_{k-1}",
+    "0": "0",
+    "1": "1",
+    "2": "2",
+    "3": "3",
+}
+
+
 def log_loss(logger, loss, acc, step):
     logger["loss"].append(loss)
     if acc is not None:
         logger["acc"].append(acc)
     logger["step"].append(step)
+
 
 def plot_loss_acc(loggers, path):
     if not os.path.exists(path):
@@ -243,12 +254,12 @@ def save_file(recoder, path='./', steps=None):
         src = int(outin[1])-2
         dest = int(outin[0])
         if src == -2:
-            axs[dest, src + 2].set_ylabel(str(dest))
+            axs[dest, src + 2].set_ylabel(NODE_LABELS[str(dest)])
         if dest == 3:
-            axs[dest, src + 2].set_xlabel(str(src))
+            axs[dest, src + 2].set_xlabel(NODE_LABELS[str(src)])
         op = k.split("op: ")[1]
         try:
-            axs[dest, src+2].plot(steps, v, label=op, color=COLORMAP[op])
+            axs[dest, src + 2].plot(steps, v, label=op, color=COLORMAP[op])
         except:
             axs[dest, src + 2].plot([0]+steps, v, label=op, color=COLORMAP[op])
         if "none" in op:
@@ -269,9 +280,9 @@ def save_file(recoder, path='./', steps=None):
                 src = int(outin[1]) - 2
                 dest = int(outin[0])
                 if src == -2:
-                    axs[dest, src + 2].set_ylabel(str(dest))
+                    axs[dest, src + 2].set_ylabel(NODE_LABELS[str(dest)])
                 if dest == 3:
-                    axs[dest, src + 2].set_xlabel(str(src))
+                    axs[dest, src + 2].set_xlabel(NODE_LABELS[str(src)])
                 try:
                     axs[dest, src + 2].plot(steps, v, label=op, color=COLORMAP[op])
                 except:
