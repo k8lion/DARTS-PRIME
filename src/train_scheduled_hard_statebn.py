@@ -85,6 +85,7 @@ def main():
 
     if args.dyno_schedule:
         args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
+        print(args.threshold_divider, -np.log(args.threshold_multiplier) / np.log(args.threshold_divider))
     if args.dyno_split:
         args.train_portion = 1 / (1 + args.schedfreq)
 
@@ -131,7 +132,6 @@ def main():
                "val": {"loss": [], "acc": [], "step": []},
                "infer": {"loss": [], "acc": [], "step": []},
                "ath": {"threshold": [], "step": []},
-               "zuth": {"threshold": [], "step": []},
                "astep": [],
                "zustep": []}
 
@@ -170,7 +170,6 @@ def main():
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
         utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"], loggers['astep'])
-        utils.plot_FI(model.FI_alpha_history_step, model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"], loggers['zustep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
@@ -194,7 +193,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         model.train()
         n = input.size(0)
         model.tick(1 / batches)
-        alpha_step = False
 
         loggers["ath"]["threshold"].append(alpha_threshold)
         loggers["ath"]["step"].append(model.clock)
@@ -213,7 +211,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
             if args.dyno_schedule:
                 alpha_threshold *= args.threshold_divider
-            alpha_step = True
             alpha_counter += 1
             loggers["astep"].append(model.clock)
         elif args.dyno_schedule:
@@ -226,7 +223,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         logits = model(input)
         loss = criterion(logits, target)
         loss.backward()
-        model.track_FI(alpha_step)
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
         model.mask_alphas()

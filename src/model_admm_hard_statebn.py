@@ -171,14 +171,11 @@ class Network(nn.Module):
         self.FI_normal = torch.zeros_like(self.alphas_normal).cpu()
         self.FI = 0.0
         self.FI_ewma = -1.0
-        self.FI_alpha = 0.0
 
         self.alphas_normal_history = {}
         self.alphas_reduce_history = {}
         self.FI_history = []
         self.FI_ewma_history = []
-        self.FI_alpha_history = []
-        self.FI_alpha_history_step = []
         mm = 0
         last_id = 1
         node_id = 0
@@ -340,11 +337,10 @@ class Network(nn.Module):
             else:
                 mm += 1
 
-    def track_FI(self, alpha_step = False):
+    def track_FI(self):
         self.FI_reduce *= 0.0
         self.FI_normal *= 0.0
         self.FI *= 0.0
-        self.FI_alpha *= 0.0
         for (n, p) in self.named_parameters():
             self.FI += torch.sum(p.grad.data ** 2).cpu()
             name = n.split(".")
@@ -355,13 +351,6 @@ class Network(nn.Module):
                     self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / (self._layers - len(self._reduce))
 
         self.FI_history.append(float(self.FI))
-
-        if alpha_step:
-            for p in self._arch_parameters:
-                self.FI_alpha += torch.sum(p.grad.data ** 2).cpu()
-
-            self.FI_alpha_history.append(float(self.FI_alpha))
-            self.FI_alpha_history_step.append(self.clock)
 
         if self.FI_ewma == -1:
             self.FI_ewma = self.FI
