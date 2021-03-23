@@ -3,6 +3,7 @@ import os
 import genotypes
 from genotypes import *
 from graphviz import Digraph
+from utils import COLORMAP
 
 
 def plot(genotype, filename):
@@ -31,7 +32,7 @@ def plot(genotype, filename):
       else:
         u = str(j-2)
       v = str(i)
-      g.edge(u, v, label=op, fillcolor="gray")
+      g.edge(u, v, label=op, color="#%02x%02x%02x" % tuple([int(x * 256) for x in COLORMAP[op][0:3]]))
 
   g.node("c_{k}", fillcolor='palegoldenrod')
   for i in range(steps):
