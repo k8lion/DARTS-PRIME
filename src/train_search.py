@@ -172,7 +172,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
-        architect.step(input, target, input_search, target_search, lr, optimizer)
+        architect.step(input_search, target_search)
         FI_alpha = 0.0
         for p in model._arch_parameters:
             FI_alpha += torch.sum(p.grad.data ** 2).cpu()
