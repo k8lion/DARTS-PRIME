@@ -198,6 +198,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
         utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), model.clock)
+        model.update_history()
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
