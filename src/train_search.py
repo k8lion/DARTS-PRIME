@@ -109,6 +109,13 @@ def main():
 
     architect = Architect(model, args)
 
+    loggers = {"train": {"loss": [], "acc": [], "step": []},
+               "val": {"loss": [], "acc": [], "step": []},
+               "infer": {"loss": [], "acc": [], "step": []},
+               "ath": {"threshold": [], "step": []},
+               "astep": [],
+               "zustep": []}
+
     for epoch in range(args.epochs):
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
@@ -122,7 +129,7 @@ def main():
         print(F.softmax(model.alphas_reduce, dim=-1))
 
         # training
-        train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, lr)
+        train_acc, train_obj = train(train_queue, valid_queue, model, architect, criterion, optimizer, loggers)
         logging.info('train_acc %f', train_acc)
 
         # validation
@@ -131,12 +138,12 @@ def main():
 
         model.update_history()
 
-        utils.plot_FI(model.batchstep, model.FI_hist, args.save)
-
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normal'), steps=model.batchstep)
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reduce'), steps=model.batchstep)
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'),
+                        steps=loggers["train"]["step"])
 
     print(F.softmax(model.alphas_normal, dim=-1))
     print(F.softmax(model.alphas_reduce, dim=-1))
@@ -153,10 +160,10 @@ def main():
     f.write(str(genotype))
     f.close()
 
-def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
+
+def train(train_queue, valid_queue, model, architect, criterion, optimizer, loggers):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
-    top5 = utils.AverageMeter()
 
     valid_iter = iter(valid_queue)
     batches = len(train_queue)
@@ -173,10 +180,6 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
         target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
         architect.step(input_search, target_search)
-        FI_alpha = 0.0
-        for p in model._arch_parameters:
-            FI_alpha += torch.sum(p.grad.data ** 2).cpu()
-        print("FI_alpha: ", float(FI_alpha))
 
         optimizer.zero_grad()
         logits = model(input)
@@ -191,11 +194,10 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, lr):
             model.batchstep.append(0.0)
         optimizer.step()
 
-        # prec1, prec5 = utils.accuracy(logits, target, topk=(1, 5))
         prec1 = utils.accuracy(logits, target, topk=(1,))
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)
-        # top5.update(prec5.data[0], n)
+        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), model.clock)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
