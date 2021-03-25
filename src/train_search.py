@@ -136,8 +136,6 @@ def main():
         valid_acc, valid_obj = infer(valid_queue, model, criterion)
         logging.info('valid_acc %f', valid_acc)
 
-        model.update_history()
-
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
         utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'),
