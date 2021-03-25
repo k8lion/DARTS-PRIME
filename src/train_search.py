@@ -168,6 +168,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
     for step, (input, target) in enumerate(train_queue):
         model.train()
         n = input.size(0)
+        model.tick(1 / batches)
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
         target = Variable(target, requires_grad=False).cuda(non_blocking=True)
