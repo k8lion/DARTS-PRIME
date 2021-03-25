@@ -292,7 +292,8 @@ def save_file(recoder, path='./', steps=None):
             for j in range(2 + i, 5):
                 axs[i, j].axis("off")
         handles, labels = axs[1, 1].get_legend_handles_labels()
-        fig.legend(handles, labels, loc="upper right")
+        fig.legend(handles, labels, loc="lower left", bbox_to_anchor=(0.65, 0.55))
+        fig.suptitle(os.path.split(path)[1][0:6])
         fig.savefig(path + '_alphahistory-none.png', bbox_inches='tight')
         plt.close()
     try:
