@@ -138,9 +138,9 @@ def main():
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'),
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'Normalalpha'),
                         steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'),
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'Reducealpha'),
                         steps=loggers["train"]["step"])
 
     print(F.softmax(model.alphas_normal, dim=-1))

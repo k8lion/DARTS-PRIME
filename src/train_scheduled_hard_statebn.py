@@ -165,11 +165,14 @@ def main():
 
         utils.plot_loss_acc(loggers, args.save)
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'), steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'Normalalpha'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'Reducealpha'),
+                        steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
-        utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"], loggers['astep'])
+        utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"],
+                      loggers['astep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
