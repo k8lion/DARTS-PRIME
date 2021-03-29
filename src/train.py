@@ -130,7 +130,8 @@ def main():
 
     if args.test:
         torch.cuda.empty_cache()
-        os.system('python src/test.py --auxiliary --model_path %s' % os.path.join(args.save, 'weights.pt'))
+        os.system(
+            'python src/test.py --batch_size 8 --auxiliary --model_path %s' % os.path.join(args.save, 'weights.pt'))
 
 
 def train(train_queue, model, criterion, optimizer):
