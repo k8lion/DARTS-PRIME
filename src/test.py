@@ -31,7 +31,7 @@ parser.add_argument('--arch', type=str, default='DARTS', help='which architectur
 args = parser.parse_args()
 
 args.save = os.path.join(utils.get_dir(), os.path.split(args.model_path)[0], "test")
-utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
+utils.create_exp_dir(args.save)
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
