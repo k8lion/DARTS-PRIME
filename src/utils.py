@@ -89,7 +89,6 @@ def _data_transforms_cifar10(args):
 def count_parameters_in_MB(model):
     return np.sum(np.prod(v.size()) for name, v in model.named_parameters() if "auxiliary" not in name) / 1e6
 
-
 def save_checkpoint(state, is_best, save):
     filename = os.path.join(save, 'checkpoint.pth.tar')
     torch.save(state, filename)
