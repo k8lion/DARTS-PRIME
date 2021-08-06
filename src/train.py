@@ -45,7 +45,8 @@ if len(args.save) == 0:
     args.save = 'eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S"))
 
 if args.genotype_path is not None:
-    args.genotype_path = os.path.join('exp', args.genotype_path)
+    if "exp" not in args.genotype_path:
+        args.genotype_path = os.path.join('exp', args.genotype_path)
     args.save = os.path.join(utils.get_dir(), args.genotype_path, args.save)
 else:
     args.genotype_path = os.path.join('exp', args.genotype_path)
