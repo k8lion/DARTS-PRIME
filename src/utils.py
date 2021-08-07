@@ -1,11 +1,13 @@
 import os
 import shutil
-
+from PIL import Image
 import numpy as np
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
+from torchvision.datasets import CIFAR10, CIFAR100
+import pickle
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -300,6 +302,122 @@ def save_file(recoder, path='./', steps=None):
             json.dump(recoder, outf)
     except:
         pass
+
+cifar100c2f = ('beaver', 'dolphin', 'otter', 'seal', 'whale',
+       'aquarium_fish', 'flatfish', 'ray', 'shark', 'trout',
+       'orchid', 'poppy', 'rose', 'sunflower', 'tulip',
+       'bottle', 'bowl', 'can', 'cup', 'plate',
+       'apple', 'mushroom', 'orange', 'pear', 'sweet_pepper',
+       'clock', 'keyboard', 'lamp', 'telephone', 'television',
+       'bed', 'chair', 'couch', 'table', 'wardrobe',
+       'bee', 'beetle', 'butterfly', 'caterpillar', 'cockroach',
+       'bear', 'leopard', 'lion', 'tiger', 'wolf',
+       'bridge', 'castle', 'house', 'road', 'skyscraper',
+       'cloud', 'forest', 'mountain', 'plain', 'sea',
+       'camel', 'cattle', 'chimpanzee', 'elephant', 'kangaroo',
+       'fox', 'porcupine', 'possum', 'raccoon', 'skunk',
+       'crab', 'lobster', 'snail', 'spider', 'worm',
+       'baby', 'boy', 'girl', 'man', 'woman',
+       'crocodile', 'dinosaur', 'lizard', 'snake', 'turtle',
+       'hamster', 'mouse', 'rabbit', 'shrew', 'squirrel',
+       'maple_tree', 'oak_tree', 'palm_tree', 'pine_tree', 'willow_tree',
+       'bicycle', 'bus', 'motorcycle', 'pickup_truck', 'train',
+       'lawn_mower', 'rocket', 'streetcar', 'tank', 'tractor')
+
+
+class CIFAR100C2F(CIFAR100):
+    meta = {
+        'filename': 'meta',
+        'fine_key': 'fine_label_names',
+        'coarse_key': 'coarse_label_names',
+        'md5': '7973b15100ade9c7d40fb424638fde48',
+    }
+
+    def __init__(
+            self,
+            root: str,
+            train: bool = True,
+            transform = None,
+            target_transform = None,
+            download: bool = False,
+    ):
+
+        super(CIFAR10, self).__init__(root, transform=transform,
+                                      target_transform=target_transform)
+
+        self.train = train  # training set or test set
+
+        if download:
+            self.download()
+
+        if not self._check_integrity():
+            raise RuntimeError('Dataset not found or corrupted.' +
+                               ' You can use download=True to download it')
+
+        if self.train:
+            downloaded_list = self.train_list
+        else:
+            downloaded_list = self.test_list
+
+        self._load_meta()
+
+        self.data = []
+        self.fine_targets = []
+        self.coarse_targets = []
+
+        # now load the picked numpy arrays
+        for file_name, checksum in downloaded_list:
+            file_path = os.path.join(self.root, self.base_folder, file_name)
+            with open(file_path, 'rb') as f:
+                entry = pickle.load(f, encoding='latin1')
+                self.data.append(entry['data'])
+                self.fine_targets.extend(entry['fine_labels'])
+                self.coarse_targets.extend(entry['coarse_labels'])
+
+        self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
+        self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
+
+
+
+    def _load_meta(self):
+        path = os.path.join(self.root, self.base_folder, self.meta['filename'])
+        with open(path, 'rb') as infile:
+            data = pickle.load(infile, encoding='latin1')
+            self.fine_classes = data[self.meta['fine_key']]
+            self.coarse_classes = data[self.meta['coarse_key']]
+        self.fine_class_to_idx = {_class: i for i, _class in enumerate(self.fine_classes)}
+        print(self.fine_class_to_idx)
+        self.coarse_class_to_idx = {_class: i for i, _class in enumerate(self.coarse_classes)}
+
+    def __getitem__(self, index: int):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target) where target is index of the target class.
+        """
+        img, fine_target, coarse_target = self.data[index], self.fine_targets[index], self.coarse_targets[index]
+
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(img)
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            fine_target = self.target_transform(fine_target)
+            coarse_target = self.target_transform(coarse_target)
+
+        return img, coarse_target
+
+    # return indices such that a certain number of fine classes per coarse class are not included
+    def filter_by_fine(self, classes_to_filter=0):
+        cind2find = [self.fine_class_to_idx[fineclass] for fineclass in cifar100c2f]
+        indices = [i for i in range(len(self.fine_targets)) if cind2find.index(self.fine_targets[i]) % 5 + 1 > classes_to_filter]
+        from collections import Counter
+        return indices
 
 
 class BathymetryDataset(Dataset):

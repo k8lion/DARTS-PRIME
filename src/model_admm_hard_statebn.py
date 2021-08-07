@@ -64,7 +64,7 @@ class Cell(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, rho, crb, epochs, ewma=1.0, zuewma=1.0, reg="admm", steps=4,
+    def __init__(self, C, num_classes, layers, criterion, rho, crb, epochs, gpu, ewma=1.0, zuewma=1.0, reg="admm", steps=4,
                  multiplier=4, stem_multiplier=3):
         super(Network, self).__init__()
         self._C = C
@@ -73,6 +73,7 @@ class Network(nn.Module):
         self._criterion = criterion
         self._reg = reg
         self._rho = rho
+        self._gpu = gpu
         self._ewma = ewma
         self._zuewma = zuewma
         self._steps = steps
@@ -153,13 +154,23 @@ class Network(nn.Module):
         k = sum(1 for i in range(self._steps) for n in range(2 + i))
 
         if self._crb:
-            self.alphas_normal = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)).cuda(),
-                                          requires_grad=True)
-            self.alphas_reduce = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)).cuda(),
-                                          requires_grad=True)
+            if self._gpu != -1:
+                self.alphas_normal = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)).cuda(),
+                                              requires_grad=True)
+                self.alphas_reduce = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)).cuda(),
+                                              requires_grad=True)
+            else:
+                self.alphas_normal = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)),
+                                              requires_grad=True)
+                self.alphas_reduce = Variable((1 / self._num_ops + 1e-4 * torch.randn(k, self._num_ops)),
+                                              requires_grad=True)
         else:
-            self.alphas_normal = Variable(1e-3 * torch.randn(k, self._num_ops).cuda(), requires_grad=True)
-            self.alphas_reduce = Variable(1e-3 * torch.randn(k, self._num_ops).cuda(), requires_grad=True)
+            if self._gpu != -1:
+                self.alphas_normal = Variable(1e-3 * torch.randn(k, self._num_ops).cuda(), requires_grad=True)
+                self.alphas_reduce = Variable(1e-3 * torch.randn(k, self._num_ops).cuda(), requires_grad=True)
+            else:
+                self.alphas_normal = Variable(1e-3 * torch.randn(k, self._num_ops), requires_grad=True)
+                self.alphas_reduce = Variable(1e-3 * torch.randn(k, self._num_ops), requires_grad=True)
         self._arch_parameters = [
             self.alphas_normal,
             self.alphas_reduce,

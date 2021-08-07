@@ -18,6 +18,9 @@ from model_admm_hard_statebn import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
+parser.add_argument('--task', type=str, default='CIFAR100', help='task name')
+parser.add_argument('--train_filter', type=int, default=0, help='CIFAR100 fine classes to filter per coarse class in train')
+parser.add_argument('--valid_filter', type=int, default=0, help='CIFAR100 fine classes to filter per coarse class in val')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float, default=0.001, help='min learning rate')
@@ -67,21 +70,26 @@ fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
-CIFAR_CLASSES = 10
+if args.task == "CIFAR100":
+    CIFAR_CLASSES = 20
+else:
+    CIFAR_CLASSES = 10
 
 
 def main():
-    if not torch.cuda.is_available():
-        logging.info('no gpu device available')
-        sys.exit(1)
-
     np.random.seed(args.seed)
-    torch.cuda.set_device(args.gpu)
-    cudnn.benchmark = True
     torch.manual_seed(args.seed)
-    cudnn.enabled = True
-    torch.cuda.manual_seed(args.seed)
-    logging.info('gpu device = %d' % args.gpu)
+    if args.gpu != -1:
+        if not torch.cuda.is_available():
+            logging.info('no gpu device available')
+            sys.exit(1)
+        torch.cuda.set_device(args.gpu)
+        cudnn.benchmark = True
+        cudnn.enabled = True
+        torch.cuda.manual_seed(args.seed)
+        logging.info('gpu device = %d' % args.gpu)
+    else:
+        logging.info('using cpu')
 
     if args.dyno_schedule:
         args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
@@ -92,10 +100,12 @@ def main():
     logging.info("args = %s", args)
 
     criterion = nn.CrossEntropyLoss()
-    criterion = criterion.cuda()
-    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.crb, args.epochs,
-                    args.ewma, reg=args.reg)
-    model = model.cuda()
+    if args.gpu != -1:
+        criterion = criterion.cuda()
+    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.crb, args.epochs, args.gpu,
+                    ewma=args.ewma, reg=args.reg)
+    if args.gpu != -1:
+        model = model.cuda()
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
     optimizer = torch.optim.SGD(
@@ -106,20 +116,38 @@ def main():
 
     train_transform, valid_transform = utils._data_transforms_cifar10(args)
     datapath = os.path.join(utils.get_dir(), args.data)
-    train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+    if args.task == "CIFAR100":
+        train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
+        if args.train_filter == args.valid_filter:
+            indices = train_data.filter_by_fine(args.class_filter)
+            num_train = len(indices)
+            indices = list(range(num_train))
 
-    num_train = len(train_data)
-    indices = list(range(num_train))
-    split = int(np.floor(args.train_portion * num_train))
+            split = int(np.floor(args.train_portion * num_train))
+
+            train_indices = indices[:split]
+            valid_indices = indices[split:num_train]
+        else:
+            pass
+        #TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
+    else:
+        train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+        num_train = len(train_data)
+        indices = list(range(num_train))
+
+        split = int(np.floor(args.train_portion * num_train))
+
+        train_indices = indices[:split]
+        valid_indices = indices[split:num_train]
 
     train_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
-        sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[:split]),
+        sampler=torch.utils.data.sampler.SubsetRandomSampler(train_indices),
         pin_memory=True, num_workers=4)
 
     valid_queue = torch.utils.data.DataLoader(
         train_data, batch_size=args.batch_size,
-        sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
+        sampler=torch.utils.data.sampler.SubsetRandomSampler(valid_indices),
         pin_memory=True, num_workers=4)
 
 
@@ -212,6 +240,9 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
                 input_search, target_search = next(valid_iter)
             input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
             target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
+            if args.gpu != -1:
+                input_search = input_search.cuda(non_blocking=True)
+                target_search = target_search.cuda(non_blocking=True)
 
             valid_loss = architect.step(input_search, target_search)
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
@@ -224,6 +255,9 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
 
         input = Variable(input, requires_grad=False).cuda(non_blocking=True)
         target = Variable(target, requires_grad=False).cuda(non_blocking=True)
+        if args.gpu != -1:
+            input = input.cuda(non_blocking=True)
+            target = target.cuda(non_blocking=True)
 
         optimizer.zero_grad()
         logits = model(input)
@@ -261,8 +295,11 @@ def infer(valid_queue, model, criterion):
 
     with torch.no_grad():
         for step, (input, target) in enumerate(valid_queue):
-            input = Variable(input).cuda(non_blocking=True)
-            target = Variable(target).cuda(non_blocking=True)
+            input = Variable(input)
+            target = Variable(target)
+            if args.gpu != -1:
+                input = input.cuda(non_blocking=True)
+                target = target.cuda(non_blocking=True)
 
             logits = model(input)
             loss = criterion(logits, target)
