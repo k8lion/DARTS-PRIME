@@ -5,12 +5,23 @@ from genotypes import *
 from graphviz import Digraph
 from utils import COLORMAP
 
+# old version of visualize
+
+ABBREV = {
+    'max_pool_3x3': 'MAX3',
+    'avg_pool_3x3': 'AVE3',
+    'skip_connect': 'SKIP',
+    'sep_conv_3x3': 'SEP3',
+    'sep_conv_5x5': 'SEP5',
+    'dil_conv_3x3': 'DIL3',
+    'dil_conv_5x5': 'DIL5'
+}
 
 def plot(genotype, filename):
   g = Digraph(
       format='png',
-      edge_attr=dict(fontsize='20', fontname="times"),
-      node_attr=dict(style='filled', shape='rect', align='center', fontsize='20', height='0.5', width='0.5', penwidth='2', fontname="times"),
+      edge_attr=dict(fontsize='40', fontname="times", penwidth='4.5'),
+      node_attr=dict(style='filled', shape='rect', align='center', fontsize='40', height='1.0', width='1.0', penwidth='4.5', fontname="times"),
       engine='dot')
   g.body.extend(['rankdir=LR'])
 
@@ -32,17 +43,16 @@ def plot(genotype, filename):
       else:
         u = str(j-2)
       v = str(i)
-      g.edge(u, v, label=op, color="#%02x%02x%02x" % tuple([int(x * 256) for x in COLORMAP[op][0:3]]))
+      g.edge(u, v, label=ABBREV[op], color="#%02x%02x%02x" % tuple([int(x * 256) for x in COLORMAP[op][0:3]]))
 
   g.node("c_{k}", fillcolor='palegoldenrod')
   for i in range(steps):
-    g.edge(str(i), "c_{k}", fillcolor="gray")
-
+    g.edge(str(i), "c_{k}", style="dashed")
   g.render(filename, view=False)
 
 
 if __name__ == '__main__':
-  for folder in ["olympe", "osirim"]:
+  for folder in ["olympe", "osirim", "d9wolympe"]:
     for root, _, files in os.walk("/home/kaitlin/repos/admmdarts/"+folder):
       for file in files:
         path = os.path.join(root, file)
@@ -51,8 +61,8 @@ if __name__ == '__main__':
             with open(path, "r") as f:
               geno_raw = f.read()
               genotype = eval(geno_raw)
-            plot(genotype.normal, os.path.join(os.path.split(path)[0], "normalgraph"))
-            plot(genotype.reduce, os.path.join(os.path.split(path)[0], "reducegraph"))
+            plot(genotype.normal, os.path.join(os.path.split(path)[0], "normalgraphup"))
+            plot(genotype.reduce, os.path.join(os.path.split(path)[0], "reducegraphup"))
           except:
             print("failed", path)
 
