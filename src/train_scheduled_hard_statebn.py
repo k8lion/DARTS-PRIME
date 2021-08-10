@@ -29,6 +29,7 @@ parser.add_argument('--weight_decay', type=float, default=3e-4, help='weight dec
 parser.add_argument('--report_freq', type=float, default=50, help='report frequency')
 parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
 parser.add_argument('--epochs', type=int, default=50, help='num of training epochs')
+parser.add_argument('--ckpt_interval', type=int, default=-1, help='If checkpointing alphas, interval of epochs')
 parser.add_argument('--init_channels', type=int, default=16, help='num of init channels')
 parser.add_argument('--layers', type=int, default=8, help='total number of layers')
 parser.add_argument('--model_path', type=str, default='saved_models', help='path to save the model')
@@ -62,6 +63,8 @@ if len(args.save) == 0:
 else:
     args.save = os.path.join(utils.get_dir(), 'exp', args.save)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
+if args.ckpt_interval > 0:
+    os.mkdir(os.path.join(args.save, 'genotypes'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -120,18 +123,27 @@ def main():
     datapath = os.path.join(utils.get_dir(), args.data)
     if args.task == "CIFAR100cf":
         train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
-        if args.train_filter == args.valid_filter:
-            indices = train_data.filter_by_fine(args.train_filter)
-            num_train = len(indices)
-            indices = list(range(num_train))
+        num_train = len(train_data)
+        indices = list(range(num_train))
 
-            split = int(np.floor(args.train_portion * num_train))
+        split = int(np.floor(args.train_portion * num_train))
 
-            train_indices = indices[:split]
-            valid_indices = indices[split:num_train]
-        else:
-            pass
-        #TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
+        orig_num_train = len(indices[:split])
+        orig_num_valid = len(indices[split:num_train])
+
+        train_indices = train_data.filter_by_fine(args.train_filter, indices[:split])
+        valid_indices = train_data.filter_by_fine(args.valid_filter, indices[split:num_train])
+
+        train_queue = torch.utils.data.DataLoader(
+            train_data, batch_size=args.batch_size,
+            sampler=utils.FillingSubsetRandomSampler(train_indices, orig_num_train, reshuffle=True),
+            pin_memory=True, num_workers=4)
+
+        valid_queue = torch.utils.data.DataLoader(
+            train_data, batch_size=args.batch_size,
+            sampler=utils.FillingSubsetRandomSampler(valid_indices, orig_num_valid, reshuffle=True),
+            pin_memory=True, num_workers=4)
+        # TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
     else:
         if args.task == "CIFAR100":
             train_data = dset.CIFAR100(root=datapath, train=True, download=True, transform=train_transform)
@@ -145,15 +157,15 @@ def main():
         train_indices = indices[:split]
         valid_indices = indices[split:num_train]
 
-    train_queue = torch.utils.data.DataLoader(
-        train_data, batch_size=args.batch_size,
-        sampler=torch.utils.data.sampler.SubsetRandomSampler(train_indices),
-        pin_memory=True, num_workers=4)
+        train_queue = torch.utils.data.DataLoader(
+            train_data, batch_size=args.batch_size,
+            sampler=torch.utils.data.sampler.SubsetRandomSampler(train_indices),
+            pin_memory=True, num_workers=4)
 
-    valid_queue = torch.utils.data.DataLoader(
-        train_data, batch_size=args.batch_size,
-        sampler=torch.utils.data.sampler.SubsetRandomSampler(valid_indices),
-        pin_memory=True, num_workers=4)
+        valid_queue = torch.utils.data.DataLoader(
+            train_data, batch_size=args.batch_size,
+            sampler=torch.utils.data.sampler.SubsetRandomSampler(valid_indices),
+            pin_memory=True, num_workers=4)
 
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -171,6 +183,7 @@ def main():
     alpha_threshold = args.init_alpha_threshold
     alpha_counter = 0
     ewma = -1
+
 
     for epoch in range(args.epochs):
         scheduler.step()
@@ -209,6 +222,14 @@ def main():
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
+        if args.ckpt_interval > 0 and (epoch + 1) % args.ckpt_interval == 0:
+            genotype = model.genotype()
+            logging.info('checkpoint genotype = %s', genotype)
+            os.mkdir(os.path.join(args.save, 'genotypes', str(epoch + 1)))
+            f = open(os.path.join(args.save, 'genotypes', str(epoch + 1), 'genotype.txt'), "w")
+            f.write(str(genotype))
+            f.close()
+
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
 
@@ -226,6 +247,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
 
     batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
+        print(target)
         model.train()
         n = input.size(0)
         model.tick(1 / batches)
