@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, SubsetRandomSampler
 from torchvision.datasets import CIFAR10, CIFAR100
+from typing import Iterator, Sequence
 import pickle
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
@@ -413,15 +414,56 @@ class CIFAR100C2F(CIFAR100):
         return img, coarse_target
 
     # return indices such that a certain number of fine classes per coarse class are not included
-    def filter_by_fine(self, classes_to_filter=0):
+    def filter_by_fine(self, classes_to_filter=0, init_indices=[]):
         cind2find = [self.fine_class_to_idx[fineclass] for fineclass in cifar100c2f]
-        indices = [i for i in range(len(self.fine_targets)) if cind2find.index(self.fine_targets[i]) % 5 + 1 > classes_to_filter]
-        from collections import Counter
+        if len(init_indices) == 0:
+            indices = [i for i in range(len(self.fine_targets)) if
+                       cind2find.index(self.fine_targets[i]) % 5 + 1 > classes_to_filter]
+        else:
+            indices = [i for i in init_indices if
+                       cind2find.index(self.fine_targets[i]) % 5 + 1 > classes_to_filter]
         return indices
 
 
+class FillingSubsetRandomSampler(SubsetRandomSampler):
+    """Samples elements randomly from a given list of indices with necessary replacement until
+    total is reached, guaranteeing all indices are sampled n times before any are repeated more
+
+    Args:
+        indices (sequence): a sequence of indices
+        total (int): total number of samples to take
+        reshuffle (bool): whether to reshuffle again
+        generator (Generator): Generator used in sampling.
+    """
+    indices: Sequence[int]
+
+    def __init__(self, indices: Sequence[int], total: int, reshuffle: bool = False, generator=None) -> None:
+        self.indices = indices
+        if total:
+            self.total = total
+        else:
+            self.total = len(indices)
+        self.reshuffle = reshuffle
+        self.generator = generator
+
+    def __iter__(self) -> Iterator[int]:
+        iter_list = torch.randperm(len(self.indices), generator=self.generator)
+        while len(iter_list) < self.total:
+            iter_list = torch.cat((iter_list, torch.randperm(len(self.indices), generator=self.generator)))
+            if len(iter_list) > self.total:
+                iter_list = iter_list[:self.total]
+        if self.reshuffle:
+            iter_list = [iter_list[i] for i in torch.randperm(len(iter_list), generator=self.generator)]
+        print(len(iter_list))
+        return (self.indices[i] for i in iter_list)
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+
 class BathymetryDataset(Dataset):
-    def __init__(self, args, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis", to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", transform=None, to_filter=True):
+    def __init__(self, args, csv_file, root_dir="dataset/bathymetry/datasets_guyane_stlouis",
+                 to_trim="/home/ad/alnajam/scratch/pdl/datasets/recorded_angles/", transform=None, to_filter=True):
         """
         Args:
             csv_file (string): Path to the csv file with paths and labels.
