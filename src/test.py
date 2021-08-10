@@ -14,8 +14,12 @@ from genotypes import *
 import utils
 from model import NetworkCIFAR as Network
 
+#test of retrained discrete architectures
+
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
+parser.add_argument('--task', type=str, default='CIFAR10', help='task name')
+parser.add_argument('--test_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in test')
 parser.add_argument('--batch_size', type=int, default=96, help='batch size')
 parser.add_argument('--report_freq', type=float, default=50, help='report frequency')
 parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
@@ -41,7 +45,12 @@ fh = logging.FileHandler(os.path.join(args.save, 'testlog.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
-CIFAR_CLASSES = 10
+if args.task == "CIFAR100":
+    CIFAR_CLASSES = 100
+elif args.task == "CIFAR100cf":
+    CIFAR_CLASSES = 20
+else:
+    CIFAR_CLASSES = 10
 
 
 def main():
@@ -88,6 +97,26 @@ def main():
 
     test_queue = torch.utils.data.DataLoader(
         test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
+
+    if args.task == "CIFAR100cf":
+        test_data = utils.CIFAR100C2F(root=datapath, train=False, download=True, transform=test_transform)
+
+        test_indices = test_data.filter_by_fine(args.test_filter)
+
+        test_queue = torch.utils.data.DataLoader(
+            torch.utils.data.Subset(test_data, test_indices), batch_size=args.batch_size,
+            shuffle=False, pin_memory=True, num_workers=2)
+
+        # TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
+
+    else:
+        if args.task == "CIFAR100":
+            test_data = dset.CIFAR100(root=datapath, train=False, download=True, transform=test_transform)
+        else:
+            test_data = dset.CIFAR10(root=datapath, train=False, download=True, transform=test_transform)
+
+        test_queue = torch.utils.data.DataLoader(
+            test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
     model.drop_path_prob = args.drop_path_prob
     test_acc, test_obj = infer(test_queue, model, criterion)

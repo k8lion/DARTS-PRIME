@@ -18,9 +18,9 @@ from model_admm_hard_statebn import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
-parser.add_argument('--task', type=str, default='CIFAR100', help='task name')
-parser.add_argument('--train_filter', type=int, default=0, help='CIFAR100 fine classes to filter per coarse class in train')
-parser.add_argument('--valid_filter', type=int, default=0, help='CIFAR100 fine classes to filter per coarse class in val')
+parser.add_argument('--task', type=str, default='CIFAR10', help='task name')
+parser.add_argument('--train_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in train')
+parser.add_argument('--valid_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in val')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float, default=0.001, help='min learning rate')
@@ -71,6 +71,8 @@ fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
 if args.task == "CIFAR100":
+    CIFAR_CLASSES = 100
+elif args.task == "CIFAR100cf":
     CIFAR_CLASSES = 20
 else:
     CIFAR_CLASSES = 10
@@ -116,10 +118,10 @@ def main():
 
     train_transform, valid_transform = utils._data_transforms_cifar10(args)
     datapath = os.path.join(utils.get_dir(), args.data)
-    if args.task == "CIFAR100":
+    if args.task == "CIFAR100cf":
         train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
         if args.train_filter == args.valid_filter:
-            indices = train_data.filter_by_fine(args.class_filter)
+            indices = train_data.filter_by_fine(args.train_filter)
             num_train = len(indices)
             indices = list(range(num_train))
 
@@ -131,7 +133,10 @@ def main():
             pass
         #TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
     else:
-        train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
+        if args.task == "CIFAR100":
+            train_data = dset.CIFAR100(root=datapath, train=True, download=True, transform=train_transform)
+        else:
+            train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
         num_train = len(train_data)
         indices = list(range(num_train))
 
