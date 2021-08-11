@@ -243,11 +243,10 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
     valid_iter = iter(valid_queue)
-    print("valid len:", len(valid_queue))
+    # print("valid len:", len(valid_queue))
 
     batches = len(train_queue)
     for step, (input, target) in enumerate(train_queue):
-        print(target)
         model.train()
         n = input.size(0)
         model.tick(1 / batches)
@@ -258,7 +257,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         loggers["ath"]["step"].append(model.clock)
         if (not args.dyno_schedule and (step + 1) % int(args.schedfreq) == 0) or (
                 args.dyno_schedule and model.FI_ewma > 0.0 and model.FI_ewma < alpha_threshold):
-            print("alpha step")
+            #print("alpha step")
             try:
                 input_search, target_search = next(valid_iter)
             except StopIteration:
