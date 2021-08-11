@@ -193,6 +193,11 @@ def main():
 
         genotype = model.genotype()
         logging.info('genotype = %s', genotype)
+        if args.ckpt_interval > 0 and epoch > 0 and (epoch) % args.ckpt_interval == 0:
+            logging.info('checkpointing genotype')
+            os.mkdir(os.path.join(args.save, 'genotypes', str(epoch)))
+            with open(os.path.join(args.save, 'genotypes', str(epoch), 'genotype.txt'), "w") as f:
+                f.write(str(genotype))
 
         print(model.activate(model.alphas_normal))
         print(model.activate(model.alphas_reduce))
@@ -221,14 +226,6 @@ def main():
                       loggers['astep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
-
-        if args.ckpt_interval > 0 and (epoch + 1) % args.ckpt_interval == 0:
-            genotype = model.genotype()
-            logging.info('checkpoint genotype = %s', genotype)
-            os.mkdir(os.path.join(args.save, 'genotypes', str(epoch + 1)))
-            f = open(os.path.join(args.save, 'genotypes', str(epoch + 1), 'genotype.txt'), "w")
-            f.write(str(genotype))
-            f.close()
 
     genotype = model.genotype()
     logging.info('genotype = %s', genotype)
