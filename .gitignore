@@ -126,3 +126,8 @@ exp/
 slurm/
 olympe/
 osirim/
+*.eps
+*.png
+src/scrapelogs.py
+src/basecellgraph
+src/plot_bath.py
