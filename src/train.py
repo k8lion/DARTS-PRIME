@@ -73,7 +73,6 @@ else:
     CIFAR_CLASSES = 10
 
 
-
 def main():
     if not torch.cuda.is_available():
         logging.info('no gpu device available')
