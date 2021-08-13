@@ -1,23 +1,21 @@
+import argparse
+import glob
+import logging
 import os
 import sys
-import numpy as np
 import time
+
+import numpy as np
 import torch
-import utils
-import glob
-import random
-import logging
-import argparse
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
-import genotypes
 import torch.utils
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
-import torch.backends.cudnn as cudnn
-
 from torch.autograd import Variable
-from model import NetworkImageNet as Network
 
+import utils
+from model import NetworkImageNet as Network
 
 parser = argparse.ArgumentParser("imagenet")
 parser.add_argument('--data', type=str, default='../data/imagenet/', help='location of the data corpus')
@@ -30,6 +28,8 @@ parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
 parser.add_argument('--epochs', type=int, default=250, help='num of training epochs')
 parser.add_argument('--init_channels', type=int, default=48, help='num of init channels')
 parser.add_argument('--layers', type=int, default=14, help='total number of layers')
+parser.add_argument('--genotype_path', type=str, default='', help='path of search trial')
+parser.add_argument('--model_path', type=str, default='saved_models', help='path to save the model')
 parser.add_argument('--auxiliary', action='store_true', default=False, help='use auxiliary tower')
 parser.add_argument('--auxiliary_weight', type=float, default=0.4, help='weight for auxiliary loss')
 parser.add_argument('--drop_path_prob', type=float, default=0, help='drop path probability')
@@ -43,12 +43,21 @@ parser.add_argument('--decay_period', type=int, default=1, help='epochs between 
 parser.add_argument('--parallel', action='store_true', default=False, help='data parallelism')
 args = parser.parse_args()
 
-args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
+if len(args.save) == 0:
+  args.save = 'eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S"))
+
+if args.genotype_path is not None:
+  if "exp" not in args.genotype_path:
+    args.genotype_path = os.path.join('exp', args.genotype_path)
+  args.save = os.path.join(utils.get_dir(), args.genotype_path, args.save)
+else:
+  args.genotype_path = os.path.join('exp', args.genotype_path)
+  args.save = os.path.join(utils.get_dir(), args.save)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
-    format=log_format, datefmt='%m/%d %I:%M:%S %p')
+                    format=log_format, datefmt='%m/%d %I:%M:%S %p')
 fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
@@ -81,12 +90,23 @@ def main():
   torch.cuda.set_device(args.gpu)
   cudnn.benchmark = True
   torch.manual_seed(args.seed)
-  cudnn.enabled=True
+  cudnn.enabled = True
   torch.cuda.manual_seed(args.seed)
   logging.info('gpu device = %d' % args.gpu)
   logging.info("args = %s", args)
 
-  genotype = eval("genotypes.%s" % args.arch)
+  genotype_path = os.path.join(utils.get_dir(), args.genotype_path, 'genotype.txt')
+  if os.path.isfile(genotype_path):
+    with open(genotype_path, "r") as f:
+      geno_raw = f.read()
+      genotype = eval(geno_raw)
+  else:
+    genotype = eval("genotypes.%s" % args.arch)
+
+  f = open(os.path.join(args.save, 'genotype.txt'), "w")
+  f.write(str(genotype))
+  f.close()
+
   model = Network(args.init_channels, CLASSES, args.layers, args.auxiliary, genotype)
   if args.parallel:
     model = nn.DataParallel(model).cuda()
@@ -105,10 +125,10 @@ def main():
     args.learning_rate,
     momentum=args.momentum,
     weight_decay=args.weight_decay
-    )
+  )
 
-  traindir = os.path.join(args.data, 'train')
-  validdir = os.path.join(args.data, 'val')
+  traindir = os.path.join(utils.get_dir(), args.data, 'train')
+  validdir = os.path.join(utils.get_dir(), args.data, 'val')
   normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
   train_data = dset.ImageFolder(
     traindir,
@@ -143,7 +163,7 @@ def main():
   best_acc_top1 = 0
   for epoch in range(args.epochs):
     scheduler.step()
-    logging.info('epoch %d lr %e', epoch, scheduler.get_lr()[0])
+    logging.info('epoch %d lr %e', epoch, scheduler.get_last_lr()[0])
     model.drop_path_prob = args.drop_path_prob * epoch / args.epochs
 
     train_acc, train_obj = train(train_queue, model, criterion_smooth, optimizer)
@@ -162,8 +182,8 @@ def main():
       'epoch': epoch + 1,
       'state_dict': model.state_dict(),
       'best_acc_top1': best_acc_top1,
-      'optimizer' : optimizer.state_dict(),
-      }, is_best, args.save)
+      'optimizer': optimizer.state_dict(),
+    }, is_best, args.save)
 
 
 def train(train_queue, model, criterion, optimizer):
@@ -183,7 +203,7 @@ def train(train_queue, model, criterion, optimizer):
     loss = criterion(logits, target)
     if args.auxiliary:
       loss_aux = criterion(logits_aux, target)
-      loss += args.auxiliary_weight*loss_aux
+      loss += args.auxiliary_weight * loss_aux
 
     loss.backward()
     nn.utils.clip_grad_norm(model.parameters(), args.grad_clip)
@@ -227,4 +247,4 @@ def infer(valid_queue, model, criterion):
 
 
 if __name__ == '__main__':
-  main() 
+  main()
