@@ -168,7 +168,7 @@ def main():
         torch.cuda.empty_cache()
         os.system(
             'python src/test.py --batch_size 8 --auxiliary --model_path %s --task %s --test_filter %s' %
-            os.path.join(args.save, 'weights.pt'), args.task, args.test_filter)
+            (os.path.join(args.save, 'weights.pt'), args.task, args.test_filter))
 
 
 def train(train_queue, model, criterion, optimizer):
