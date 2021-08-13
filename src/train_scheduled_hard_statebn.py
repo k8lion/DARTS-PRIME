@@ -184,7 +184,6 @@ def main():
     alpha_counter = 0
     ewma = -1
 
-
     for epoch in range(args.epochs):
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
