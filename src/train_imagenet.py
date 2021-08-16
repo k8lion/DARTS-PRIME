@@ -20,7 +20,7 @@ from model import NetworkImageNet as Network
 from genotypes import *
 
 parser = argparse.ArgumentParser("imagenet")
-parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
+parser.add_argument('--data', type=str, default='dataset/imagenet', help='location of the data corpus')
 parser.add_argument('--batch_size', type=int, default=128, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.1, help='init learning rate')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
