@@ -89,8 +89,29 @@ def _data_transforms_cifar10(args):
     return train_transform, valid_transform
 
 
+def _data_transforms_cifar100(args):
+    CIFAR_MEAN = [0.5071, 0.4865, 0.4409]
+    CIFAR_STD = [0.2673, 0.2564, 0.2762]
+
+    train_transform = transforms.Compose([
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
+    ])
+    if args.cutout:
+        train_transform.transforms.append(Cutout(args.cutout_length))
+
+    valid_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(CIFAR_MEAN, CIFAR_STD),
+    ])
+    return train_transform, valid_transform
+
+
 def count_parameters_in_MB(model):
     return np.sum(np.prod(v.size()) for name, v in model.named_parameters() if "auxiliary" not in name) / 1e6
+
 
 def save_checkpoint(state, is_best, save):
     filename = os.path.join(save, 'checkpoint.pth.tar')

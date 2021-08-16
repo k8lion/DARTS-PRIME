@@ -119,9 +119,9 @@ def main():
         momentum=args.momentum,
         weight_decay=args.weight_decay)
 
-    train_transform, valid_transform = utils._data_transforms_cifar10(args)
     datapath = os.path.join(utils.get_dir(), args.data)
     if args.task == "CIFAR100cf":
+        train_transform, valid_transform = utils._data_transforms_cifar100(args)
         train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
         num_train = len(train_data)
         indices = list(range(num_train))
@@ -146,8 +146,10 @@ def main():
         # TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
     else:
         if args.task == "CIFAR100":
+            train_transform, valid_transform = utils._data_transforms_cifar100(args)
             train_data = dset.CIFAR100(root=datapath, train=True, download=True, transform=train_transform)
         else:
+            train_transform, valid_transform = utils._data_transforms_cifar10(args)
             train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
         num_train = len(train_data)
         indices = list(range(num_train))

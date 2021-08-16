@@ -99,6 +99,8 @@ def main():
         test_data, batch_size=args.batch_size, shuffle=False, pin_memory=True, num_workers=2)
 
     if args.task == "CIFAR100cf":
+        _, test_transform = utils._data_transforms_cifar100(args)
+
         test_data = utils.CIFAR100C2F(root=datapath, train=False, download=True, transform=test_transform)
 
         test_indices = test_data.filter_by_fine(args.test_filter)
@@ -111,8 +113,10 @@ def main():
 
     else:
         if args.task == "CIFAR100":
+            _, test_transform = utils._data_transforms_cifar100(args)
             test_data = dset.CIFAR100(root=datapath, train=False, download=True, transform=test_transform)
         else:
+            _, test_transform = utils._data_transforms_cifar10(args)
             test_data = dset.CIFAR10(root=datapath, train=False, download=True, transform=test_transform)
 
         test_queue = torch.utils.data.DataLoader(

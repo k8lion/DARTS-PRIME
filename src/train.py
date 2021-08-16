@@ -113,10 +113,11 @@ def main():
         weight_decay=args.weight_decay
     )
 
-    train_transform, valid_transform = utils._data_transforms_cifar10(args)
     datapath = os.path.join(utils.get_dir(), args.data)
 
     if args.task == "CIFAR100cf":
+        train_transform, valid_transform = utils._data_transforms_cifar100(args)
+
         train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
         valid_data = utils.CIFAR100C2F(root=datapath, train=False, download=True, transform=valid_transform)
 
@@ -136,9 +137,11 @@ def main():
 
     else:
         if args.task == "CIFAR100":
+            train_transform, valid_transform = utils._data_transforms_cifar100(args)
             train_data = dset.CIFAR100(root=datapath, train=True, download=True, transform=train_transform)
             valid_data = dset.CIFAR100(root=datapath, train=False, download=True, transform=valid_transform)
         else:
+            train_transform, valid_transform = utils._data_transforms_cifar10(args)
             train_data = dset.CIFAR10(root=datapath, train=True, download=True, transform=train_transform)
             valid_data = dset.CIFAR10(root=datapath, train=False, download=True, transform=valid_transform)
 
