@@ -36,7 +36,7 @@ parser.add_argument('--auxiliary', action='store_true', default=False, help='use
 parser.add_argument('--auxiliary_weight', type=float, default=0.4, help='weight for auxiliary loss')
 parser.add_argument('--test', action='store_true', default=False, help='automatically run on test split')
 parser.add_argument('--drop_path_prob', type=float, default=0, help='drop path probability')
-parser.add_argument('--save', type=str, default='EXP', help='experiment name')
+parser.add_argument('--save', type=str, default='', help='experiment name')
 parser.add_argument('--seed', type=int, default=0, help='random seed')
 parser.add_argument('--arch', type=str, default='DARTS', help='which architecture to use')
 parser.add_argument('--grad_clip', type=float, default=5., help='gradient clipping')
