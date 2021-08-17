@@ -184,7 +184,11 @@ NODE_LABELS = {
 
 
 def log_loss(logger, loss, acc, step):
-    logger["loss"].append(loss)
+    try:
+        loss_log = loss.detach().item()
+    except:
+        loss_log = loss
+    logger["loss"].append(loss_log)
     if acc is not None:
         logger["acc"].append(acc)
     logger["step"].append(step)
@@ -429,7 +433,7 @@ class CIFAR100C2F(CIFAR100):
             img = self.transform(img)
 
         if self.target_transform is not None:
-            fine_target = self.target_transform(fine_target)
+            # fine_target = self.target_transform(fine_target)
             coarse_target = self.target_transform(coarse_target)
 
         return img, coarse_target

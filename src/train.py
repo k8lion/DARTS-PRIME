@@ -194,7 +194,7 @@ def train(train_queue, model, criterion, optimizer):
 
         prec1 = utils.accuracy(logits, target, topk=(1, ))
         n = input.size(0)
-        objs.update(loss.item(), n)
+        objs.update(loss, n)
         top1.update(prec1[0].item(), n)
 
         if step % args.report_freq == 0:
@@ -218,7 +218,7 @@ def infer(valid_queue, model, criterion):
 
             prec1 = utils.accuracy(logits, target, topk=(1, ))
             n = input.size(0)
-            objs.update(loss.item(), n)
+            objs.update(loss, n)
             top1.update(prec1[0].item(), n)
 
             if step % args.report_freq == 0:

@@ -39,7 +39,7 @@ parser.add_argument('--drop_path_prob', type=float, default=0.3, help='drop path
 parser.add_argument('--save', type=str, default='', help='experiment name')
 parser.add_argument('--seed', type=int, default=2, help='random seed')
 parser.add_argument('--grad_clip', type=float, default=5, help='gradient clipping')
-parser.add_argument('--train_portion', type=float, default=0.5, help='portion of training data')
+parser.add_argument('--train_portion', type=float, default=0.5, help='portion of training data to use for each split')
 parser.add_argument('--crb', action='store_true', default=False, help='use CRB activation instead of softmax')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
@@ -126,7 +126,7 @@ def main():
         num_train = len(train_data)
         indices = list(range(num_train))
 
-        split = int(np.floor(args.train_portion * num_train))
+        split = int(np.floor(args.train_portion * len(indices)))
 
         orig_num_train = len(indices[:split])
         orig_num_valid = len(indices[split:num_train])
@@ -137,12 +137,12 @@ def main():
         train_queue = torch.utils.data.DataLoader(
             train_data, batch_size=args.batch_size,
             sampler=utils.FillingSubsetRandomSampler(train_indices, orig_num_train, reshuffle=True),
-            pin_memory=True, num_workers=4)
+            pin_memory=True, num_workers=2)
 
         valid_queue = torch.utils.data.DataLoader(
             train_data, batch_size=args.batch_size,
             sampler=utils.FillingSubsetRandomSampler(valid_indices, orig_num_valid, reshuffle=True),
-            pin_memory=True, num_workers=4)
+            pin_memory=True, num_workers=2)
         # TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
     else:
         if args.task == "CIFAR100":
@@ -295,9 +295,9 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         model.update_history()
 
         prec1 = utils.accuracy(logits, target, topk=(1,))
-        objs.update(loss.item(), n)
+        objs.update(loss.detach().item(), n)
         top1.update(prec1[0].item(), n)
-        utils.log_loss(loggers["train"], loss.item(), prec1[0].item(), model.clock)
+        utils.log_loss(loggers["train"], loss, prec1[0].item(), model.clock)
 
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
@@ -330,7 +330,7 @@ def infer(valid_queue, model, criterion):
 
             prec1 = utils.accuracy(logits, target, topk=(1,))
             n = input.size(0)
-            objs.update(loss.item(), n)
+            objs.update(loss.detach().item(), n)
             top1.update(prec1[0].item(), n)
 
             if step % args.report_freq == 0:
