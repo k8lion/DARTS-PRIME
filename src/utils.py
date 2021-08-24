@@ -1,21 +1,24 @@
 import os
+import pickle
 import shutil
-from PIL import Image
+from typing import Iterator, Sequence
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 import torchvision.transforms as transforms
+from PIL import Image
+from torch.autograd import Variable
 from torch.utils.data import Dataset, SubsetRandomSampler
 from torchvision.datasets import CIFAR10, CIFAR100
-from typing import Iterator, Sequence
-import pickle
-from torch.autograd import Variable
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+
 mpl.rcParams['lines.linewidth'] = 1.0
 import json
 from sklearn.utils import resample
 from math import ceil
+
 
 class AverageMeter(object):
 
@@ -448,6 +451,18 @@ class CIFAR100C2F(CIFAR100):
             indices = [i for i in init_indices if
                        cind2find.index(self.fine_targets[i]) % 5 + 1 > classes_to_filter]
         return indices
+
+    def split(self, train_portion=0.5):
+        cind2find = [self.fine_class_to_idx[fineclass] for fineclass in cifar100c2f]
+        sorter = [
+            cind2find.index(self.fine_targets[i]) % 5 + float(int(cind2find.index(self.fine_targets[i]) / 5)) / 20. for
+            i in range(len(self.fine_targets))]
+        train_indices = [i for i in range(len(self.fine_targets)) if
+                         sorter[i] < train_portion * 5]
+        val_indices = [i for i in range(len(self.fine_targets)) if
+                       sorter[i] >= train_portion * 5]
+        print(len(train_indices), len(val_indices))
+        return train_indices, val_indices
 
 
 class FillingSubsetRandomSampler(SubsetRandomSampler):
