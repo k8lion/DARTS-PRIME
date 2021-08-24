@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import time
+
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -144,6 +145,20 @@ def main():
             sampler=utils.FillingSubsetRandomSampler(valid_indices, orig_num_valid, reshuffle=True),
             pin_memory=True, num_workers=2)
         # TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
+    elif args.task == "CIFAR100split":
+        train_transform, valid_transform = utils._data_transforms_cifar100(args)
+        train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
+        train_indices, valid_indices = train_data.split(args.train_portion)
+
+        train_queue = torch.utils.data.DataLoader(
+            train_data, batch_size=args.batch_size,
+            sampler=torch.utils.data.sampler.SubsetRandomSampler(train_indices),
+            pin_memory=True, num_workers=2)
+
+        valid_queue = torch.utils.data.DataLoader(
+            train_data, batch_size=args.batch_size,
+            sampler=torch.utils.data.sampler.SubsetRandomSampler(valid_indices),
+            pin_memory=True, num_workers=2)
     else:
         if args.task == "CIFAR100":
             train_transform, valid_transform = utils._data_transforms_cifar100(args)
