@@ -76,7 +76,7 @@ logging.getLogger().addHandler(fh)
 
 if args.task == "CIFAR100":
     CIFAR_CLASSES = 100
-elif args.task == "CIFAR100cf":
+elif args.task == "CIFAR100cf" or args.task == "CIFAR100split":
     CIFAR_CLASSES = 20
 else:
     CIFAR_CLASSES = 10
