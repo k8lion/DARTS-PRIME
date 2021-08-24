@@ -1,21 +1,22 @@
+import argparse
+import glob
+import logging
 import os
 import sys
 import time
-import glob
+
 import numpy as np
 import torch
-import utils
-import logging
-import argparse
-import torch.nn as nn
-import torch.utils
-import torch.nn.functional as F
-import torchvision.datasets as dset
 import torch.backends.cudnn as cudnn
-
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.utils
+import torchvision.datasets as dset
 from torch.autograd import Variable
-from model_search import Network
+
+import utils
 from architect import Architect
+from model_search import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
