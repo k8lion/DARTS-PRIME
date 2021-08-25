@@ -21,7 +21,10 @@ parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
 parser.add_argument('--task', type=str, default='CIFAR10', help='task name')
 parser.add_argument('--train_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in train')
-parser.add_argument('--valid_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in val')
+parser.add_argument('--valid_filter', type=int, default=0,
+                    help='CIFAR100cf fine classes to filter per coarse class in val')
+parser.add_argument('--split', action='store_true', default=True,
+                    help='If task is 100split, do complete split of semantic classes')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.025, help='init learning rate')
 parser.add_argument('--learning_rate_min', type=float, default=0.001, help='min learning rate')
@@ -148,8 +151,17 @@ def main():
     elif args.task == "CIFAR100split":
         train_transform, valid_transform = utils._data_transforms_cifar100(args)
         train_data = utils.CIFAR100C2F(root=datapath, train=True, download=True, transform=train_transform)
-        train_indices, valid_indices = train_data.split(args.train_portion)
+        if args.split:
+            train_indices, valid_indices = train_data.split(args.train_portion)
+        else:
+            num_train = len(train_data)
+            indices = list(range(num_train))
 
+            split = int(np.floor(args.train_portion * num_train))
+
+            train_indices = indices[:split]
+            valid_indices = indices[split:num_train]
+            
         train_queue = torch.utils.data.DataLoader(
             train_data, batch_size=args.batch_size,
             sampler=torch.utils.data.sampler.SubsetRandomSampler(train_indices),
