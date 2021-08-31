@@ -13,7 +13,7 @@ INITRANGE = 0.04
 
 class DARTSCell(nn.Module):
 
-    def __init__(self, ninp, nhid, dropouth, dropoutx, genotype):
+    def __init__(self, ninp, nhid, dropouth, dropoutx, genotype, crb):
         super(DARTSCell, self).__init__()
         self.nhid = nhid
         self.dropouth = dropouth
@@ -93,7 +93,7 @@ class RNNModel(nn.Module):
 
     def __init__(self, ntoken, ninp, nhid, nhidlast,
                  dropout=0.5, dropouth=0.5, dropoutx=0.5, dropouti=0.5, dropoute=0.1,
-                 cell_cls=DARTSCell, genotype=None):
+                 cell_cls=DARTSCell, genotype=None, crb=None):
         super(RNNModel, self).__init__()
         self.lockdrop = LockedDropout()
         self.encoder = nn.Embedding(ntoken, ninp)
@@ -101,10 +101,10 @@ class RNNModel(nn.Module):
         assert ninp == nhid == nhidlast
         if cell_cls == DARTSCell:
             assert genotype is not None
-            self.rnns = [cell_cls(ninp, nhid, dropouth, dropoutx, genotype)]
+            self.rnns = [cell_cls(ninp, nhid, dropouth, dropoutx, genotype, crb)]
         else:
             assert genotype is None
-            self.rnns = [cell_cls(ninp, nhid, dropouth, dropoutx)]
+            self.rnns = [cell_cls(ninp, nhid, dropouth, dropoutx, genotype, crb)]
 
         self.rnns = torch.nn.ModuleList(self.rnns)
         self.decoder = nn.Linear(ninp, ntoken)

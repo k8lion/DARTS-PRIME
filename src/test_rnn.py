@@ -7,8 +7,8 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 
 import data
-import model
-from utils import batchify, get_batch, repackage_hidden
+import model_rnn
+from utils_rnn import batchify, get_batch, repackage_hidden
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
 parser.add_argument('--data', type=str, default='../data/penn/',

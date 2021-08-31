@@ -14,12 +14,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import data
-import model_search as model
-from architect import Architect
-from utils import batchify, get_batch, repackage_hidden, create_exp_dir, save_checkpoint
+import model_search_rnn as model
+from architect_rnn import Architect
+from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint
+import utils
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
-parser.add_argument('--data', type=str, default='../data/penn/',
+parser.add_argument('--data', type=str, default='dataset/penn/',
                     help='location of the data corpus')
 parser.add_argument('--emsize', type=int, default=300,
                     help='size of word embeddings')
@@ -55,8 +56,7 @@ parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
 parser.add_argument('--log-interval', type=int, default=50, metavar='N',
                     help='report interval')
-parser.add_argument('--save', type=str, default='EXP',
-                    help='path to save the final model')
+parser.add_argument('--save', type=str, default='', help='experiment name')
 parser.add_argument('--alpha', type=float, default=0,
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
 parser.add_argument('--beta', type=float, default=1e-3,
@@ -79,6 +79,17 @@ parser.add_argument('--arch_wdecay', type=float, default=1e-3,
                     help='weight decay for the architecture encoding alpha')
 parser.add_argument('--arch_lr', type=float, default=3e-3,
                     help='learning rate for the architecture encoding alpha')
+parser.add_argument('--crb', action='store_true', default=False, help='use CRB activation instead of softmax')
+parser.add_argument('--rho', type=float, default=1e-3, help='admm/prox relative weight')
+parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
+parser.add_argument('--threshold_multiplier', type=float, default=1.05, help='threshold multiplier')
+parser.add_argument('--schedfreq', type=float, default=1.0, help='w steps per each alpha step')
+parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
+parser.add_argument('--dyno_split', action='store_true', default=False,
+                    help='use train/val split based on dynamic schedule')
+parser.add_argument('--dyno_schedule', action='store_true', default=False, help='use dynamic schedule')
+parser.add_argument('--reg', type=str, default='darts', help='reg/opt to use')
+
 args = parser.parse_args()
 
 if args.nhidlast < 0:
@@ -86,9 +97,12 @@ if args.nhidlast < 0:
 if args.small_batch_size < 0:
     args.small_batch_size = args.batch_size
 
-if not args.continue_train:
-    args.save = 'search-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
-    create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+if len(args.save) == 0:
+    args.save = os.path.join(utils.get_dir(),
+                             'exp/rnn-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+else:
+    args.save = os.path.join(utils.get_dir(), 'exp', args.save)
+utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
@@ -109,7 +123,12 @@ if torch.cuda.is_available():
         cudnn.enabled = True
         torch.cuda.manual_seed_all(args.seed)
 
-corpus = data.Corpus(args.data)
+        if args.dyno_schedule:
+            args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
+        if args.dyno_split:
+            args.train_portion = 1 - 1 / (1 + args.schedfreq)
+
+corpus = data.Corpus(os.path.join(utils.get_dir(), args.data), args.train_portion)
 
 eval_batch_size = 10
 test_batch_size = 1
@@ -123,7 +142,8 @@ ntokens = len(corpus.dictionary)
 if args.continue_train:
     model = torch.load(os.path.join(args.save, 'model.pt'))
 else:
-    model = model.RNNModelSearch(ntokens, args.emsize, args.nhid, args.nhidlast,
+    model = model.RNNModelSearch(args.crb, args.rho, args.ewma, args.reg, args.epochs, ntokens, args.emsize, args.nhid,
+                                 args.nhidlast,
                                  args.dropout, args.dropouth, args.dropoutx, args.dropouti, args.dropoute)
 
 size = 0
@@ -201,6 +221,7 @@ def train():
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
+
             hidden[s_id] = repackage_hidden(hidden[s_id])
             hidden_valid[s_id] = repackage_hidden(hidden_valid[s_id])
 

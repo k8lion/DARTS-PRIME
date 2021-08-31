@@ -25,7 +25,7 @@ class Dictionary(object):
 
 
 class Corpus(object):
-    def __init__(self, path):
+    def __init__(self, path, train_portion):
         self.dictionary = Dictionary()
         self.train = self.tokenize(os.path.join(path, 'train.txt'))
         self.valid = self.tokenize(os.path.join(path, 'valid.txt'))
@@ -125,7 +125,7 @@ class BatchSentLoader(object):
 
 
 if __name__ == '__main__':
-    corpus = SentCorpus('../penn')
+    corpus = SentCorpus('../dataset/penn')
     loader = BatchSentLoader(corpus.test, 10)
     for i, d in enumerate(loader):
         print(i, d.size())

@@ -14,8 +14,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import data
-import model
-from utils import batchify, get_batch, repackage_hidden, create_exp_dir, save_checkpoint
+import model_rnn
+from utils_rnn import batchify, get_batch, repackage_hidden, create_exp_dir, save_checkpoint
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
 parser.add_argument('--data', type=str, default='../data/penn/',
@@ -117,9 +117,9 @@ if args.continue_train:
     model = torch.load(os.path.join(args.save, 'model.pt'))
 else:
     genotype = eval("genotypes.%s" % args.arch)
-    model = model.RNNModel(ntokens, args.emsize, args.nhid, args.nhidlast,
-                           args.dropout, args.dropouth, args.dropoutx, args.dropouti, args.dropoute,
-                           cell_cls=model.DARTSCell, genotype=genotype)
+    model = model_rnn.RNNModel(ntokens, args.emsize, args.nhid, args.nhidlast,
+                               args.dropout, args.dropouth, args.dropoutx, args.dropouti, args.dropoute,
+                               cell_cls=model_rnn.DARTSCell, genotype=genotype)
 
 if args.cuda:
     if args.single_gpu:
