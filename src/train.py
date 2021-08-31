@@ -1,19 +1,19 @@
+import argparse
+import glob
+import logging
 import os
 import sys
 import time
-import glob
+
 import numpy as np
 import torch
-import utils
-import logging
-import argparse
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
-from genotypes import *
 import torchvision.datasets as dset
-import torch.backends.cudnn as cudnn
-
 from torch.autograd import Variable
+
+import utils
 from model import NetworkCIFAR as Network
 
 # evaluation of discretized networks
@@ -21,8 +21,10 @@ from model import NetworkCIFAR as Network
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
 parser.add_argument('--task', type=str, default='CIFAR10', help='task name')
-parser.add_argument('--eval_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in eval')
-parser.add_argument('--test_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in test')
+parser.add_argument('--eval_filter', type=int, default=0,
+                    help='CIFAR100cf fine classes to filter per coarse class in eval')
+parser.add_argument('--test_filter', type=int, default=0,
+                    help='CIFAR100cf fine classes to filter per coarse class in test')
 parser.add_argument('--batch_size', type=int, default=96, help='batch size')
 parser.add_argument('--learning_rate', type=float, default=0.025, help='init learning rate')
 parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
@@ -133,7 +135,7 @@ def main():
             torch.utils.data.Subset(valid_data, valid_indices), batch_size=args.batch_size,
             shuffle=False, pin_memory=True, num_workers=2)
 
-        #TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
+        # TODO: extend each epoch or multiply number of epochs by 20%*args.class_filter
 
     else:
         if args.task == "CIFAR100":
@@ -192,7 +194,7 @@ def train(train_queue, model, criterion, optimizer):
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
 
-        prec1 = utils.accuracy(logits, target, topk=(1, ))
+        prec1 = utils.accuracy(logits, target, topk=(1,))
         n = input.size(0)
         objs.update(loss, n)
         top1.update(prec1[0].item(), n)
@@ -216,7 +218,7 @@ def infer(valid_queue, model, criterion):
             logits, _ = model(input)
             loss = criterion(logits, target)
 
-            prec1 = utils.accuracy(logits, target, topk=(1, ))
+            prec1 = utils.accuracy(logits, target, topk=(1,))
             n = input.size(0)
             objs.update(loss, n)
             top1.update(prec1[0].item(), n)
@@ -229,4 +231,3 @@ def infer(valid_queue, model, criterion):
 
 if __name__ == '__main__':
     main()
-

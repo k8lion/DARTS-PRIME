@@ -1,10 +1,11 @@
+import math
+
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from genotypes import Genotype
 from genotypes import CRBPRIMITIVES, PRIMITIVES
+from genotypes import Genotype
 from operations import *
-import math
 
 
 class MixedOp(nn.Module):
@@ -64,7 +65,8 @@ class Cell(nn.Module):
 
 class Network(nn.Module):
 
-    def __init__(self, C, num_classes, layers, criterion, rho, crb, epochs, gpu, ewma=1.0, zuewma=1.0, reg="admm", steps=4,
+    def __init__(self, C, num_classes, layers, criterion, rho, crb, epochs, gpu, ewma=1.0, zuewma=1.0, reg="admm",
+                 steps=4,
                  multiplier=4, stem_multiplier=3):
         super(Network, self).__init__()
         self._C = C
@@ -235,7 +237,7 @@ class Network(nn.Module):
                         if k_best is None or W[j][k] > W[j][k_best]:
                             k_best = k
                 gene.append((self.primitives[k_best], j))
-                z[j+start, k_best] = 1.0
+                z[j + start, k_best] = 1.0
             start = end
             n += 1
         return gene, z
@@ -270,7 +272,7 @@ class Network(nn.Module):
             loss += prox_reg
             print(prox_reg)
         return loss
-    
+
     def proxadj_loss(self, output, target):
         loss = self._criterion(output, target)
         for x in self._arch_parameters:
@@ -306,11 +308,10 @@ class Network(nn.Module):
             print(z)
         self.Z = new_Z
 
-
     def update_U(self):
         new_U = ()
         for u, x, z, m in zip(self.U, self._arch_parameters, self.Z, self._arch_mask):
-            new_u = ((self._zuewma)*u.cuda() + (x - z.cuda())).mul(m).detach().cpu()
+            new_u = ((self._zuewma) * u.cuda() + (x - z.cuda())).mul(m).detach().cpu()
             new_U += (new_u,)
             print(new_u)
         self.U = new_U
@@ -324,11 +325,11 @@ class Network(nn.Module):
 
     def states(self):
         return {
-          'alphas_normal': self.alphas_normal,
-          'alphas_reduce': self.alphas_reduce,
-          'alphas_normal_history': self.alphas_normal_history,
-          'alphas_reduce_history': self.alphas_reduce_history,
-          'criterion': self._criterion
+            'alphas_normal': self.alphas_normal,
+            'alphas_reduce': self.alphas_reduce,
+            'alphas_normal_history': self.alphas_normal_history,
+            'alphas_reduce_history': self.alphas_reduce_history,
+            'criterion': self._criterion
         }
 
     def update_history(self):
@@ -363,12 +364,13 @@ class Network(nn.Module):
                 if int(name[1]) in self._reduce:
                     self.FI_reduce[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / len(self._reduce)
                 else:
-                    self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / (self._layers - len(self._reduce))
+                    self.FI_normal[int(name[3]), int(name[5])] += torch.sum(p.grad.data ** 2).cpu() / (
+                            self._layers - len(self._reduce))
 
         self.FI_history.append(float(self.FI))
 
         if self.FI_ewma == -1:
             self.FI_ewma = self.FI
         else:
-            self.FI_ewma = self._ewma*self.FI + (1-self._ewma)*self.FI_ewma
+            self.FI_ewma = self._ewma * self.FI + (1 - self._ewma) * self.FI_ewma
         self.FI_ewma_history.append(float(self.FI_ewma))

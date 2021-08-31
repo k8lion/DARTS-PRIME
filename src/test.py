@@ -1,8 +1,8 @@
 import argparse
 import logging
-import sys
 import os
-import glob
+import sys
+
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
@@ -10,16 +10,17 @@ import torch.nn as nn
 import torch.utils
 import torchvision.datasets as dset
 from torch.autograd import Variable
-from genotypes import *
+
 import utils
 from model import NetworkCIFAR as Network
 
-#test of retrained discrete architectures
+# test of retrained discrete architectures
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
 parser.add_argument('--task', type=str, default='CIFAR10', help='task name')
-parser.add_argument('--test_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in test')
+parser.add_argument('--test_filter', type=int, default=0,
+                    help='CIFAR100cf fine classes to filter per coarse class in test')
 parser.add_argument('--batch_size', type=int, default=96, help='batch size')
 parser.add_argument('--report_freq', type=float, default=50, help='report frequency')
 parser.add_argument('--gpu', type=int, default=0, help='gpu device id')
@@ -84,7 +85,7 @@ def main():
             genotype = eval("genotypes.ADMM")
     model = Network(args.init_channels, CIFAR_CLASSES, args.layers, args.auxiliary, genotype)
     model = model.cuda()
-    utils.load(model, os.path.join(utils.get_dir(),args.model_path))
+    utils.load(model, os.path.join(utils.get_dir(), args.model_path))
 
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -139,7 +140,7 @@ def infer(test_queue, model, criterion):
         logits, _ = model(input)
         loss = criterion(logits, target)
 
-        prec1 = utils.accuracy(logits, target, topk=(1, ))
+        prec1 = utils.accuracy(logits, target, topk=(1,))
         n = input.size(0)
         objs.update(loss.item(), n)
         top1.update(prec1[0].item(), n)

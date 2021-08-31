@@ -20,7 +20,8 @@ from model_admm_hard_statebn import Network
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
 parser.add_argument('--task', type=str, default='CIFAR10', help='task name')
-parser.add_argument('--train_filter', type=int, default=0, help='CIFAR100cf fine classes to filter per coarse class in train')
+parser.add_argument('--train_filter', type=int, default=0,
+                    help='CIFAR100cf fine classes to filter per coarse class in train')
 parser.add_argument('--valid_filter', type=int, default=0,
                     help='CIFAR100cf fine classes to filter per coarse class in val')
 parser.add_argument('--evensplit', action='store_true', default=False,
@@ -111,7 +112,8 @@ def main():
     criterion = nn.CrossEntropyLoss()
     if args.gpu != -1:
         criterion = criterion.cuda()
-    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.crb, args.epochs, args.gpu,
+    model = Network(args.init_channels, CIFAR_CLASSES, args.layers, criterion, args.rho, args.crb, args.epochs,
+                    args.gpu,
                     ewma=args.ewma, reg=args.reg)
     if args.gpu != -1:
         model = model.cuda()
@@ -161,7 +163,7 @@ def main():
 
             train_indices = indices[:split]
             valid_indices = indices[split:num_train]
-            
+
         train_queue = torch.utils.data.DataLoader(
             train_data, batch_size=args.batch_size,
             sampler=torch.utils.data.sampler.SubsetRandomSampler(train_indices),
@@ -195,7 +197,6 @@ def main():
             train_data, batch_size=args.batch_size,
             sampler=torch.utils.data.sampler.SubsetRandomSampler(valid_indices),
             pin_memory=True, num_workers=4)
-
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, int(args.epochs), eta_min=args.learning_rate_min)
@@ -282,7 +283,7 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
         loggers["ath"]["step"].append(model.clock)
         if (not args.dyno_schedule and (step + 1) % int(args.schedfreq) == 0) or (
                 args.dyno_schedule and model.FI_ewma > 0.0 and model.FI_ewma < alpha_threshold):
-            #print("alpha step")
+            # print("alpha step")
             try:
                 input_search, target_search = next(valid_iter)
             except StopIteration:

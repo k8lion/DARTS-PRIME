@@ -1,21 +1,21 @@
+import argparse
+import glob
+import logging
 import os
 import sys
 import time
-import glob
+
 import numpy as np
 import torch
-import utils
-import logging
-import argparse
-import torch.nn as nn
-import torch.utils
-import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
-
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.utils
 from torch.autograd import Variable
-from model_search import Network
-from architect import Architect
 
+import utils
+from architect import Architect
+from model_search import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
@@ -43,8 +43,8 @@ parser.add_argument('--max_energy', type=float, default=4.0, help='maximum energ
 parser.add_argument('--max_depth', type=float, default=40.0, help='maximum unnormalized depth')
 args = parser.parse_args()
 
-
-args.save = os.path.join(utils.get_dir(), 'exp/bath-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(),
+                         'exp/bath-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -53,6 +53,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO,
 fh = logging.FileHandler(os.path.join(args.save, 'log.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
+
 
 def main():
     if not torch.cuda.is_available():
@@ -80,9 +81,8 @@ def main():
         momentum=args.momentum,
         weight_decay=args.weight_decay)
 
-
-    #dataset = utils.BathymetryDataset(args, "guyane/guyane.csv")
-    #dataset.add(args, "saint_louis/saint_louis.csv")
+    # dataset = utils.BathymetryDataset(args, "guyane/guyane.csv")
+    # dataset.add(args, "saint_louis/saint_louis.csv")
 
     dataset = utils.BathymetryDataset(args, "../mixed_train.csv", to_filter=False)
     dataset.add(args, "../mixed_validation.csv", to_balance=False)
@@ -104,7 +104,7 @@ def main():
 
     architect = Architect(model, args)
 
-    loggers = {"train":{"loss": [], "step": []}, "val":{"loss": [], "step": []}, "infer":{"loss": [], "step": []}}
+    loggers = {"train": {"loss": [], "step": []}, "val": {"loss": [], "step": []}, "infer": {"loss": [], "step": []}}
 
     for epoch in range(args.epochs):
         scheduler.step()

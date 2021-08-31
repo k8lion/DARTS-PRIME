@@ -209,6 +209,7 @@ class NetworkImageNet(nn.Module):
         logits = self.classifier(out.view(out.size(0), -1))
         return logits, logits_aux
 
+
 class NetworkBathy(nn.Module):
 
     def __init__(self, C, num_classes, layers, auxiliary, genotype, input_channels=4):

@@ -1,18 +1,18 @@
+import argparse
+import glob
+import logging
 import os
 import sys
 import time
-import glob
+
 import numpy as np
 import torch
-import utils
-import logging
-import argparse
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
-from genotypes import *
-import torch.backends.cudnn as cudnn
-
 from torch.autograd import Variable
+
+import utils
 from model import NetworkBathy as Network
 
 parser = argparse.ArgumentParser("cifar")
@@ -45,9 +45,11 @@ parser.add_argument('--max_depth', type=float, default=40.0, help='maximum unnor
 args = parser.parse_args()
 
 if args.genotype_path is not None:
-    args.save = os.path.join(utils.get_dir(), args.genotype_path, 'batheval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+    args.save = os.path.join(utils.get_dir(), args.genotype_path,
+                             'batheval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 else:
-    args.save = os.path.join(utils.get_dir(), 'exp/batheval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+    args.save = os.path.join(utils.get_dir(),
+                             'exp/batheval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -113,7 +115,7 @@ def main():
 
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, args.epochs)
 
-    loggers = {"train":{"loss": [], "step": []}, "val":{"loss": [], "step": []}}
+    loggers = {"train": {"loss": [], "step": []}, "val": {"loss": [], "step": []}}
 
     for epoch in range(args.epochs):
         scheduler.step()
@@ -128,8 +130,8 @@ def main():
         utils.plot_loss_acc(loggers, args.save)
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
-        if (epoch+1) % 50 == 0:
-            utils.save(model, os.path.join(args.save, 'checkpoint'+str(epoch)+'weights.pt'))
+        if (epoch + 1) % 50 == 0:
+            utils.save(model, os.path.join(args.save, 'checkpoint' + str(epoch) + 'weights.pt'))
 
 
 def train(train_queue, model, criterion, optimizer, train_logger):

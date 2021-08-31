@@ -1,17 +1,15 @@
 import argparse
-import logging
-import sys
-import os
-import time
 import glob
-import pandas as pd
+import logging
+import os
+import sys
+
 import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
 from torch.autograd import Variable
-from genotypes import *
 
 import utils
 from model import NetworkBathy as Network
@@ -47,6 +45,7 @@ fh = logging.FileHandler(os.path.join(args.save, 'testlog.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
+
 def main():
     if not torch.cuda.is_available():
         logging.info('no gpu device available')
@@ -76,8 +75,8 @@ def main():
             genotype = eval("genotypes.BATH")
     model = Network(args.init_channels, 1, args.layers, args.auxiliary, genotype, input_channels=4)
     model = model.cuda()
-    print(os.path.join(utils.get_dir(),args.model_path))
-    utils.load(model, os.path.join(utils.get_dir(),args.model_path))
+    print(os.path.join(utils.get_dir(), args.model_path))
+    utils.load(model, os.path.join(utils.get_dir(), args.model_path))
 
     logging.info("param size = %fMB", utils.count_parameters_in_MB(model))
 
@@ -93,7 +92,7 @@ def main():
     model.drop_path_prob = args.drop_path_prob
     test_obj, targets, preds = infer(test_queue_tne, model, criterion, args.depth_normalization)
     logging.info('test_obj tne %f', test_obj)
-    
+
     test_data_tne.write_results(targets, preds, os.path.join(args.save, 'tne_results.csv'))
 
     test_data_smd = utils.BathymetryDataset(args, "../29SMD.csv", root_dir="dataset/bathymetry/29SMD/dataset_29SMD",
@@ -121,9 +120,9 @@ def infer(test_queue, model, criterion, depth_norm):
 
         logits, _ = model(input)
         loss = criterion(torch.squeeze(logits), target)
-        loss_ = criterion(torch.squeeze(logits)*10, target*10)
-        predicteds.extend(torch.squeeze(logits/depth_norm).cpu().tolist())
-        targets.extend((target/depth_norm).cpu().tolist())
+        loss_ = criterion(torch.squeeze(logits) * 10, target * 10)
+        predicteds.extend(torch.squeeze(logits / depth_norm).cpu().tolist())
+        targets.extend((target / depth_norm).cpu().tolist())
 
         n = input.size(0)
         objs.update(loss.item(), n)
@@ -131,7 +130,7 @@ def infer(test_queue, model, criterion, depth_norm):
 
         if step % args.report_freq == 0:
             logging.info('test %03d %e %e', step, objs.avg, objs_.avg)
-    
+
     return objs.avg, targets, predicteds
 
 

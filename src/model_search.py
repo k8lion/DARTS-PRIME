@@ -61,7 +61,7 @@ class DenseTail(nn.Module):
     def __init__(self, in_channels, depth=1):
         super(DenseTail, self).__init__()
         self.layers = nn.ModuleList()
-        for i in range(depth-1):
+        for i in range(depth - 1):
             self.layers.append(nn.Linear(in_channels, in_channels))
         self.layers.append(nn.Linear(in_channels, 1))
         print(self.layers)
@@ -71,6 +71,7 @@ class DenseTail(nn.Module):
         for layer in self.layers:
             out = layer(out)
         return out
+
 
 class Network(nn.Module):
 
@@ -205,11 +206,11 @@ class Network(nn.Module):
 
     def states(self):
         return {
-          'alphas_normal': self.alphas_normal,
-          'alphas_reduce': self.alphas_reduce,
-          'alphas_normal_history': self.alphas_normal_history,
-          'alphas_reduce_history': self.alphas_reduce_history,
-          'criterion': self._criterion
+            'alphas_normal': self.alphas_normal,
+            'alphas_reduce': self.alphas_reduce,
+            'alphas_normal_history': self.alphas_normal_history,
+            'alphas_reduce_history': self.alphas_reduce_history,
+            'criterion': self._criterion
         }
 
     def update_history(self):

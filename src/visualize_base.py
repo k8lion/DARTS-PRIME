@@ -1,9 +1,8 @@
-import sys
-import os
-import genotypes
-from genotypes import *
 from graphviz import Digraph
+
+from genotypes import *
 from utils import COLORMAP
+
 PRIMITIVES = [
     'max_pool_3x3',
     'avg_pool_3x3',
@@ -13,40 +12,43 @@ PRIMITIVES = [
     'dil_conv_3x3',
     'dil_conv_5x5'
 ]
+
+
 def plot(filename):
-  g = Digraph(
-      format='png',
-      edge_attr=dict(fontsize='20', fontname="times"),
-      node_attr=dict(style='filled', shape='rect', align='center', fontsize='40', height='1.0', width='1.0', penwidth='4', fontname="times"),
-      engine='dot'
-      )
-  g.body.extend(['rankdir=LR'])
+    g = Digraph(
+        format='png',
+        edge_attr=dict(fontsize='20', fontname="times"),
+        node_attr=dict(style='filled', shape='rect', align='center', fontsize='40', height='1.0', width='1.0',
+                       penwidth='4', fontname="times"),
+        engine='dot'
+    )
+    g.body.extend(['rankdir=LR'])
 
-  g.node("c_{k-2}", fillcolor='darkseagreen2')
-  g.node("c_{k-1}", fillcolor='darkseagreen2')
+    g.node("c_{k-2}", fillcolor='darkseagreen2')
+    g.node("c_{k-1}", fillcolor='darkseagreen2')
 
-  steps = 4
+    steps = 4
 
-  for i in range(steps):
-    g.node(str(i), fillcolor='lightblue')
-
-  for p in range(7):
     for i in range(steps):
-      for j in range(0, i+2):
-        if j == 0:
-          u = "c_{k-2}"
-        elif j == 1:
-          u = "c_{k-1}"
-        else:
-          u = str(j-2)
-        v = str(i)
-        g.edge(u, v, color="#%02x%02x%02x" % tuple([int(x * 256) for x in COLORMAP[PRIMITIVES[p]][0:3]]))
+        g.node(str(i), fillcolor='lightblue')
 
-  g.node("c_{k}", fillcolor='palegoldenrod')
-  for i in range(steps):
-    g.edge(str(i), "c_{k}", fillcolor="gray")
+    for p in range(7):
+        for i in range(steps):
+            for j in range(0, i + 2):
+                if j == 0:
+                    u = "c_{k-2}"
+                elif j == 1:
+                    u = "c_{k-1}"
+                else:
+                    u = str(j - 2)
+                v = str(i)
+                g.edge(u, v, color="#%02x%02x%02x" % tuple([int(x * 256) for x in COLORMAP[PRIMITIVES[p]][0:3]]))
 
-  g.render(filename, view=True)
+    g.node("c_{k}", fillcolor='palegoldenrod')
+    for i in range(steps):
+        g.edge(str(i), "c_{k}", fillcolor="gray")
+
+    g.render(filename, view=True)
 
 
 plot("/home/kaitlin/repos/admmdarts/src/basecellgraph")

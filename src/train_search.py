@@ -187,7 +187,9 @@ def train(train_queue, valid_queue, model, architect, criterion, optimizer, logg
 
         loss.backward()
         nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
-        model.FI_hist.append(torch.norm(torch.stack([torch.norm(p.grad.detach(), 2.0).cuda() for p in model.parameters() if p.grad is not None]), 2.0)**2)
+        model.FI_hist.append(torch.norm(
+            torch.stack([torch.norm(p.grad.detach(), 2.0).cuda() for p in model.parameters() if p.grad is not None]),
+            2.0) ** 2)
         if len(model.batchstep) > 0:
             model.batchstep.append(model.batchstep[-1] + 1 / batches)
         else:
@@ -219,7 +221,7 @@ def infer(valid_queue, model, criterion):
             logits = model(input)
             loss = criterion(logits, target)
 
-            prec1 = utils.accuracy(logits, target, topk=(1, ))
+            prec1 = utils.accuracy(logits, target, topk=(1,))
             n = input.size(0)
             objs.update(loss.item(), n)
             top1.update(prec1[0].item(), n)

@@ -1,5 +1,6 @@
 import torch
 
+
 class Architect(object):
 
     def __init__(self, model, args):

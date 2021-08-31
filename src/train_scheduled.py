@@ -11,11 +11,11 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
 import torchvision.datasets as dset
+from model_admm_hard import Network
 from torch.autograd import Variable
 
 import utils
 from architect import Architect
-from model_admm_hard import Network
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
@@ -47,12 +47,14 @@ parser.add_argument('--init_zu_threshold', type=float, default=1.0, help='initia
 parser.add_argument('--threshold_multiplier', type=float, default=1.1, help='threshold multiplier')
 parser.add_argument('--threshold_divider', type=float, default=0.2, help='threshold divider')
 parser.add_argument('--scheduled_zu', action='store_true', default=False, help='use dynamically scheduled z,u steps')
-parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0, help='use constant threshold (-1 to use dynamic threshold)')
+parser.add_argument('--constant_alpha_threshold', type=float, default=-1.0,
+                    help='use constant threshold (-1 to use dynamic threshold)')
 parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
 args = parser.parse_args()
 
 if len(args.save) == 0:
-    args.save = os.path.join(utils.get_dir(), 'exp/admmsched-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+    args.save = os.path.join(utils.get_dir(),
+                             'exp/admmsched-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 else:
     args.save = os.path.join(utils.get_dir(), 'exp', args.save)
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
@@ -111,7 +113,6 @@ def main():
         sampler=torch.utils.data.sampler.SubsetRandomSampler(indices[split:num_train]),
         pin_memory=True, num_workers=2)
 
-
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, int(args.epochs), eta_min=args.learning_rate_min)
 
@@ -152,10 +153,12 @@ def main():
 
         # training
         train_acc, train_obj, alpha_threshold, zu_threshold, alpha_counter, ewma = train(train_queue, valid_iter, model,
-                                                                                   architect, criterion, optimizer, lr,
-                                                                                   loggers, alpha_threshold,
-                                                                                   zu_threshold, alpha_counter, ewma,
-                                                                                   args)
+                                                                                         architect, criterion,
+                                                                                         optimizer, lr,
+                                                                                         loggers, alpha_threshold,
+                                                                                         zu_threshold, alpha_counter,
+                                                                                         ewma,
+                                                                                         args)
         logging.info('train_acc %f', train_acc)
 
         # validation
@@ -165,21 +168,29 @@ def main():
 
         utils.plot_loss_acc(loggers, args.save)
 
-        #model.update_history()
+        # model.update_history()
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'), steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'),
+                        steps=loggers["train"]["step"])
 
         scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
         scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
-        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
+        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'),
+                        steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI", loggers["ath"], loggers['astep'])
-        utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"], loggers['astep'])
-        utils.plot_FI(model.FI_alpha_history_step, model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"], loggers['zustep'])
+        utils.plot_FI(loggers["train"]["step"], model.FI_ewma_history, args.save, "FI_ewma", loggers["ath"],
+                      loggers['astep'])
+        utils.plot_FI(model.FI_alpha_history_step, model.FI_alpha_history, args.save, "FI_alpha", loggers["zuth"],
+                      loggers['zustep'])
 
         utils.save(model, os.path.join(args.save, 'weights.pt'))
 
@@ -198,7 +209,8 @@ def scale(FI_hist, alpha_hist):
     return scaled_FI
 
 
-def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold, alpha_counter, ewma, args):
+def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, loggers, alpha_threshold, zu_threshold,
+          alpha_counter, ewma, args):
     objs = utils.AverageMeter()
     top1 = utils.AverageMeter()
 
@@ -219,9 +231,10 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
             input_search = Variable(input_search, requires_grad=False).cuda(non_blocking=True)
             target_search = Variable(target_search, requires_grad=False).cuda(non_blocking=True)
 
-            valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer, unrolled=args.unrolled)
+            valid_loss = architect.step(input, target, input_search, target_search, lr, optimizer,
+                                        unrolled=args.unrolled)
             utils.log_loss(loggers["val"], valid_loss, None, model.clock)
-            #alpha_threshold = args.init_alpha_threshold
+            # alpha_threshold = args.init_alpha_threshold
             if args.constant_alpha_threshold < 0:
                 alpha_threshold *= 0.5
             alpha_step = True
@@ -260,11 +273,11 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
                 print("zu step")
                 model.update_Z()
                 model.update_U()
-                #zu_threshold = args.init_zu_threshold
+                # zu_threshold = args.init_zu_threshold
                 zu_threshold *= 0.5
                 loggers["zustep"].append(model.clock)
                 alpha_counter = 0
-                #reset alpha threshold?
+                # reset alpha threshold?
             elif alpha_step:
                 zu_threshold *= 1.1
         else:

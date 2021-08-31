@@ -1,21 +1,21 @@
+import argparse
+import glob
+import logging
 import os
 import sys
 import time
-import glob
+
 import numpy as np
 import torch
-import utils
-import logging
-import argparse
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.utils
 import torchvision.datasets as dset
-import torch.backends.cudnn as cudnn
-
-from torch.autograd import Variable
 from model_admm import Network
-from architect import Architect
+from torch.autograd import Variable
 
+import utils
+from architect import Architect
 
 parser = argparse.ArgumentParser("cifar")
 parser.add_argument('--data', type=str, default='dataset', help='location of the data corpus')
@@ -44,7 +44,8 @@ parser.add_argument('--rho', type=float, default=1e-3, help='admm relative weigh
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency')
 args = parser.parse_args()
 
-args.save = os.path.join(utils.get_dir(), 'exp/admm-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
+args.save = os.path.join(utils.get_dir(),
+                         'exp/admm-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S")))
 utils.create_exp_dir(args.save, scripts_to_save=glob.glob('src/*.py'))
 
 log_format = '%(asctime)s %(message)s'
@@ -108,11 +109,12 @@ def main():
 
     model.initialize_Z_and_U()
 
-    loggers = {"train":{"loss": [], "acc": [], "step": []}, "val":{"loss": [], "acc": [], "step": []}, "infer":{"loss": [], "acc": [], "step": []}}
+    loggers = {"train": {"loss": [], "acc": [], "step": []}, "val": {"loss": [], "acc": [], "step": []},
+               "infer": {"loss": [], "acc": [], "step": []}}
 
     for epoch in range(args.epochs):
         valid_iter = iter(valid_queue)
-        model.clear_U() #TODO: keep?
+        model.clear_U()  # TODO: keep?
 
         scheduler.step()
         lr = scheduler.get_last_lr()[0]
@@ -136,17 +138,23 @@ def main():
 
         utils.plot_loss_acc(loggers, args.save)
 
-        #model.update_history()
+        # model.update_history()
 
-        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'), steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_normal_history, path=os.path.join(args.save, 'normalalpha'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.alphas_reduce_history, path=os.path.join(args.save, 'reducealpha'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.FI_normal_history, path=os.path.join(args.save, 'normalFI'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=model.FI_reduce_history, path=os.path.join(args.save, 'reduceFI'),
+                        steps=loggers["train"]["step"])
 
         scaled_FI_normal = scale(model.FI_normal_history, model.alphas_normal_history)
         scaled_FI_reduce = scale(model.FI_reduce_history, model.alphas_reduce_history)
-        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'), steps=loggers["train"]["step"])
-        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'), steps=loggers["train"]["step"])
+        utils.save_file(recoder=scaled_FI_normal, path=os.path.join(args.save, 'normalFIscaled'),
+                        steps=loggers["train"]["step"])
+        utils.save_file(recoder=scaled_FI_reduce, path=os.path.join(args.save, 'reduceFIscaled'),
+                        steps=loggers["train"]["step"])
 
         utils.plot_FI(loggers["train"]["step"], model.FI_history, args.save, "FI")
 
@@ -202,7 +210,7 @@ def train(train_queue, valid_iter, model, architect, criterion, optimizer, lr, l
         if step % args.report_freq == 0:
             logging.info('train %03d %e %f', step, objs.avg, top1.avg)
 
-        if (step+1) % args.admm_freq == 0:
+        if (step + 1) % args.admm_freq == 0:
             model.update_Z()
             model.update_U()
 
