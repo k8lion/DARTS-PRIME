@@ -13,6 +13,7 @@ import torch.utils
 import torchvision.datasets as dset
 from torch.autograd import Variable
 
+from genotypes import *
 import utils
 from model import NetworkCIFAR as Network
 

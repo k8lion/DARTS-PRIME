@@ -13,6 +13,7 @@ from torch.autograd import Variable
 
 import utils
 from model import NetworkCIFAR as Network
+from genotypes import *
 
 # test of retrained discrete architectures
 

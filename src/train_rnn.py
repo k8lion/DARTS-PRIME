@@ -17,6 +17,7 @@ import data
 import model_rnn
 from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint
 import utils
+from genotypes_rnn import *
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
 # parser.add_argument('--test', action='store_true', default=False, help='automatically run on test split')
