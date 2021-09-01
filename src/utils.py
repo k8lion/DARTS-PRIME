@@ -146,6 +146,8 @@ def get_dir():
         dir = "/tmpdir/maile/pydnas/"
     elif os.path.exists("/tmpdir/p21049mk/pydnas/"):
         dir = "/tmpdir/p21049mk/pydnas/"
+    elif os.path.exists("/tmpdir/p21049wd/kaitlin/pydnas/"):
+        dir = "/tmpdir/p21049wd/kaitlin/pydnas/"
     elif os.path.exists("/projets/reva/kmaile/pydnas/"):
         dir = "/projets/reva/kmaile/pydnas/"
     else:
