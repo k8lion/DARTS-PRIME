@@ -19,6 +19,8 @@ from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint
 import utils
 from genotypes_rnn import *
 
+Genotype = Genotype_rnn
+
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
 # parser.add_argument('--test', action='store_true', default=False, help='automatically run on test split')
 parser.add_argument('--genotype_path', type=str, default='', help='path of search trial')
@@ -132,6 +134,8 @@ else:
     if os.path.isfile(genotype_path):
         with open(genotype_path, "r") as f:
             geno_raw = f.read()
+            # if "tensor" in geno_raw:
+
             genotype = eval(geno_raw)
     else:
         genotype = eval("genotypes.%s" % args.arch)

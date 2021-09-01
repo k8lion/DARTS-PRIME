@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-Genotype = namedtuple('Genotype', 'recurrent concat')
+Genotype_rnn = namedtuple('Genotype_rnn', 'recurrent concat')
 
 PRIMITIVES = [
     'none',
@@ -18,7 +18,7 @@ CRBPRIMITIVES = [
 STEPS = 8
 CONCAT = 8
 
-ENAS = Genotype(
+ENAS = Genotype_rnn(
     recurrent=[
         ('tanh', 0),
         ('tanh', 1),
@@ -35,10 +35,10 @@ ENAS = Genotype(
     concat=[2, 5, 6, 9, 10, 11]
 )
 
-DARTS_V1 = Genotype(
+DARTS_V1 = Genotype_rnn(
     recurrent=[('relu', 0), ('relu', 1), ('tanh', 2), ('relu', 3), ('relu', 4), ('identity', 1), ('relu', 5),
                ('relu', 1)], concat=range(1, 9))
-DARTS_V2 = Genotype(
+DARTS_V2 = Genotype_rnn(
     recurrent=[('sigmoid', 0), ('relu', 1), ('relu', 1), ('identity', 1), ('tanh', 2), ('sigmoid', 5), ('tanh', 3),
                ('relu', 5)], concat=range(1, 9))
 

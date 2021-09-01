@@ -3,9 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from genotypes_rnn import CRBPRIMITIVES, PRIMITIVES, STEPS, CONCAT, Genotype
+from genotypes_rnn import CRBPRIMITIVES, PRIMITIVES, STEPS, CONCAT, Genotype_rnn
 from model_rnn import DARTSCell, RNNModel
 
+Genotype = Genotype_rnn
 
 class DARTSCellSearch(DARTSCell):
 
@@ -120,7 +121,7 @@ class RNNModelSearch(RNNModel):
             activated = self.activate(self.weights)
             _, disc = self._parse(activated.detach().cpu().clone())
             prox_reg = self.clock / self.total_epochs * self._rho / 2 * ((activated - disc.cuda()).norm())
-            print(prox_reg)
+            print(loss, prox_reg)
             loss += prox_reg
         return loss, hidden_next
 
