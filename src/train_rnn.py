@@ -128,7 +128,13 @@ ntokens = len(corpus.dictionary)
 if args.continue_train:
     model = torch.load(os.path.join(args.save, 'model.pt'))
 else:
-    genotype = eval("genotypes_rnn.%s" % args.arch)
+    genotype_path = os.path.join(utils.get_dir(), args.genotype_path, 'genotype.txt')
+    if os.path.isfile(genotype_path):
+        with open(genotype_path, "r") as f:
+            geno_raw = f.read()
+            genotype = eval(geno_raw)
+    else:
+        genotype = eval("genotypes.%s" % args.arch)
     model = model_rnn.RNNModel(ntokens, args.emsize, args.nhid, args.nhidlast,
                                args.dropout, args.dropouth, args.dropoutx, args.dropouti, args.dropoute,
                                cell_cls=model_rnn.DARTSCell, genotype=genotype)
