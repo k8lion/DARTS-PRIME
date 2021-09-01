@@ -11,7 +11,7 @@ import model_rnn
 from utils_rnn import batchify, get_batch, repackage_hidden
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
-parser.add_argument('--data', type=str, default='../data/penn/',
+parser.add_argument('--data', type=str, default='dataset/penn/',
                     help='location of the data corpus')
 parser.add_argument('--emsize', type=int, default=850,
                     help='size of word embeddings')
@@ -79,7 +79,7 @@ if torch.cuda.is_available():
         cudnn.enabled = True
         torch.cuda.manual_seed_all(args.seed)
 
-corpus = data.Corpus(args.data)
+corpus = data.Corpus(os.path.join(utils.get_dir(), args.data)
 test_batch_size = 1
 test_data = batchify(corpus.test, test_batch_size, args)
 
