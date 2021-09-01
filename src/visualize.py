@@ -15,7 +15,8 @@ ABBREV = {
     'dil_conv_3x3': 'DIL3',
     'dil_conv_5x5': 'DIL5'
 }
-
+def plot_rnn(genotype, filename):
+    return
 
 def plot(genotype, filename):
     g = Digraph(
