@@ -19,6 +19,8 @@ from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint
 import utils
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
+# parser.add_argument('--test', action='store_true', default=False, help='automatically run on test split')
+parser.add_argument('--genotype_path', type=str, default='', help='path of search trial')
 parser.add_argument('--data', type=str, default='dataset/penn/',
                     help='location of the data corpus')
 parser.add_argument('--emsize', type=int, default=850,
@@ -314,6 +316,7 @@ try:
             best_val_loss.append(val_loss)
 
         epoch += 1
+
 
 except KeyboardInterrupt:
     logging.info('-' * 89)
