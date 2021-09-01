@@ -210,6 +210,7 @@ def train(alpha_threshold):
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
         model.train()
 
+        print("alpha step: ", model.FI_ewma, alpha_threshold, end=" ")
         if (not args.dyno_schedule and (batch + 1) % int(args.schedfreq) == 0) or (
                 args.dyno_schedule and 0.0 < model.FI_ewma < alpha_threshold):
             data_valid, targets_valid = get_batch(search_data, i % (search_data.size(0) - 1), args)
@@ -218,7 +219,7 @@ def train(alpha_threshold):
                 alpha_threshold *= args.threshold_divider
         elif args.dyno_schedule:
             alpha_threshold *= args.threshold_multiplier
-        print("alpha step: ", arch_step, model.FI_ewma, alpha_threshold)
+        print(arch_step)
 
         data, targets = get_batch(train_data, i, args, seq_len=seq_len)
 
