@@ -146,7 +146,7 @@ class RNNModelSearch(RNNModel):
         return gene, z
 
     def genotype(self):
-        gene = self._parse(self.activate(self.weights).data.cpu())
+        gene, z = self._parse(self.activate(self.weights).data.cpu())
         genotype = Genotype(recurrent=gene, concat=range(STEPS + 1)[-CONCAT:])
         return genotype
 
