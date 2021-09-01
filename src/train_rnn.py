@@ -128,7 +128,7 @@ ntokens = len(corpus.dictionary)
 if args.continue_train:
     model = torch.load(os.path.join(args.save, 'model.pt'))
 else:
-    genotype = eval("genotypes.%s" % args.arch)
+    genotype = eval("genotypes_rnn.%s" % args.arch)
     model = model_rnn.RNNModel(ntokens, args.emsize, args.nhid, args.nhidlast,
                                args.dropout, args.dropouth, args.dropoutx, args.dropouti, args.dropoute,
                                cell_cls=model_rnn.DARTSCell, genotype=genotype)
