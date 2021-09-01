@@ -116,7 +116,7 @@ if torch.cuda.is_available():
         cudnn.enabled = True
         torch.cuda.manual_seed_all(args.seed)
 
-corpus = data.Corpus(os.path.join(utils.get_dir(), args.data)
+corpus = data.Corpus(os.path.join(utils.get_dir(), args.data))
 
 eval_batch_size = 10
 test_batch_size = 1
