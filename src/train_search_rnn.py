@@ -319,4 +319,11 @@ for epoch in range(1, args.epochs + 1):
         logging.info('Saving Normal!')
         stored_loss = val_loss
 
+        genotype = model.genotype()
+        logging.info('genotype = %s', genotype)
+
+        f = open(os.path.join(args.save, 'genotype.txt'), "w")
+        f.write(str(genotype))
+        f.close()
+
     best_val_loss.append(val_loss)
