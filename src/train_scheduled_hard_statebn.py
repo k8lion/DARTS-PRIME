@@ -48,13 +48,13 @@ parser.add_argument('--train_portion', type=float, default=0.5, help='portion of
 parser.add_argument('--crb', action='store_true', default=False, help='use CRB activation instead of softmax')
 parser.add_argument('--arch_learning_rate', type=float, default=3e-4, help='learning rate for arch encoding')
 parser.add_argument('--arch_weight_decay', type=float, default=1e-3, help='weight decay for arch encoding')
-parser.add_argument('--rho', type=float, default=1e-3, help='admm/prox relative weight')
+parser.add_argument('--rho', type=float, default=1e-1, help='admm/prox relative weight')
 parser.add_argument('--admm_freq', type=int, default=10, help='admm update frequency (if not dynamically scheduled')
 parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
 parser.add_argument('--threshold_multiplier', type=float, default=1.05, help='threshold multiplier')
 parser.add_argument('--schedfreq', type=float, default=1.0, help='w steps per each alpha step')
-parser.add_argument('--ewma', type=float, default=1.0, help='weight for exp weighted moving average (1.0 for no ewma)')
-parser.add_argument('--zuewma', type=float, default=1.0,
+parser.add_argument('--ewma', type=float, default=0.2, help='weight for exp weighted moving average (1.0 for no ewma)')
+parser.add_argument('--zuewma', type=float, default=0.2,
                     help='weight for Z,U exp weighted moving average (1.0 for no ewma)')
 parser.add_argument('--dyno_split', action='store_true', default=False,
                     help='use train/val split based on dynamic schedule')
