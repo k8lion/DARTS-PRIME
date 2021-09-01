@@ -16,7 +16,7 @@ from torchvision.datasets import CIFAR10, CIFAR100
 
 mpl.rcParams['lines.linewidth'] = 1.0
 import json
-from sklearn.utils import resample
+# from sklearn.utils import resample
 from math import ceil
 
 
