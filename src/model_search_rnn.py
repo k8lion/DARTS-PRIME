@@ -143,7 +143,7 @@ class RNNModelSearch(RNNModel):
                 gene.append((self.primitives[k_best], j))
                 z[j + start, k_best] = 1.0
             start = end
-        return gene
+        return gene, z
 
     def genotype(self):
         gene = self._parse(self.activate(self.weights).data.cpu())
