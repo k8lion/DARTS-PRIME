@@ -144,6 +144,8 @@ def drop_path(x, drop_prob):
 def get_dir():
     if os.path.exists("/tmpdir/maile/pydnas/"):
         dir = "/tmpdir/maile/pydnas/"
+    elif os.path.exists("/tmpdir/p21049mk/pydnas/"):
+        dir = "/tmpdir/p21049mk/pydnas/"
     elif os.path.exists("/projets/reva/kmaile/pydnas/"):
         dir = "/projets/reva/kmaile/pydnas/"
     else:
