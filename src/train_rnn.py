@@ -15,10 +15,11 @@ import torch.nn.functional as F
 
 import data
 import model_rnn
-from utils_rnn import batchify, get_batch, repackage_hidden, create_exp_dir, save_checkpoint
+from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint
+import utils
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
-parser.add_argument('--data', type=str, default='../data/penn/',
+parser.add_argument('--data', type=str, default='dataset/penn/',
                     help='location of the data corpus')
 parser.add_argument('--emsize', type=int, default=850,
                     help='size of word embeddings')
@@ -76,14 +77,22 @@ parser.add_argument('--gpu', type=int, default=0, help='GPU device to use')
 parser.add_argument('--arch', type=str, default='DARTS', help='which architecture to use')
 args = parser.parse_args()
 
+if len(args.save) == 0:
+    args.save = 'eval-{}-{}'.format(os.getenv('SLURM_JOB_ID'), time.strftime("%Y%m%d-%H%M%S"))
+
+if args.genotype_path is not None:
+    if "exp" not in args.genotype_path:
+        args.genotype_path = os.path.join('exp', args.genotype_path)
+    args.save = os.path.join(utils.get_dir(), args.genotype_path, args.save)
+else:
+    args.genotype_path = os.path.join('exp', args.genotype_path)
+    args.save = os.path.join(utils.get_dir(), args.save)
+utils.create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
+
 if args.nhidlast < 0:
     args.nhidlast = args.emsize
 if args.small_batch_size < 0:
     args.small_batch_size = args.batch_size
-
-if not args.continue_train:
-    args.save = 'eval-{}-{}'.format(args.save, time.strftime("%Y%m%d-%H%M%S"))
-    create_exp_dir(args.save, scripts_to_save=glob.glob('*.py'))
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
