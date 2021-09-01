@@ -218,7 +218,7 @@ def train(alpha_threshold):
                 alpha_threshold *= args.threshold_divider
         elif args.dyno_schedule:
             alpha_threshold *= args.threshold_multiplier
-        print("alpha step: ", arch_step)
+        print("alpha step: ", arch_step, model.FI_ewma, alpha_threshold)
 
         data, targets = get_batch(train_data, i, args, seq_len=seq_len)
 

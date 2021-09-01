@@ -117,11 +117,11 @@ class RNNModelSearch(RNNModel):
         log_prob, hidden_next = self(input, hidden, return_h=False)
         loss = nn.functional.nll_loss(log_prob.view(-1, log_prob.size(2)), target)
         if self._reg == "prox":
-            for x in self._arch_parameters:
-                _, disc = self._parse(self.activate(x).detach().cpu().clone())
-                prox_reg = self.clock / self.total_epochs * self._rho / 2 * ((self.activate(x) - disc.cuda()).norm())
-                print(prox_reg)
-                loss += prox_reg
+            activated = self.activate(self.weights)
+            _, disc = self._parse(activated.detach().cpu().clone())
+            prox_reg = self.clock / self.total_epochs * self._rho / 2 * ((activated - disc.cuda()).norm())
+            print(prox_reg)
+            loss += prox_reg
         return loss, hidden_next
 
     def _parse(self, probs):
