@@ -80,7 +80,7 @@ parser.add_argument('--arch_wdecay', type=float, default=1e-3,
 parser.add_argument('--arch_lr', type=float, default=3e-3,
                     help='learning rate for the architecture encoding alpha')
 parser.add_argument('--crb', action='store_true', default=False, help='use CRB activation instead of softmax')
-parser.add_argument('--rho', type=float, default=1e-3, help='admm/prox relative weight')
+parser.add_argument('--rho', type=float, default=1e-1, help='admm/prox relative weight')
 parser.add_argument('--init_alpha_threshold', type=float, default=1.0, help='initial alpha threshold')
 parser.add_argument('--threshold_multiplier', type=float, default=1.05, help='threshold multiplier')
 parser.add_argument('--schedfreq', type=float, default=1.0, help='w steps per each alpha step')
@@ -218,6 +218,7 @@ def train(alpha_threshold):
                 alpha_threshold *= args.threshold_divider
         elif args.dyno_schedule:
             alpha_threshold *= args.threshold_multiplier
+        print("alpha step: ", arch_step)
 
         data, targets = get_batch(train_data, i, args, seq_len=seq_len)
 

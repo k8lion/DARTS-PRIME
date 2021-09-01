@@ -96,31 +96,22 @@ class RNNModelSearch(RNNModel):
         else:
             weights_data = torch.randn(k, len(self.primitives)).mul_(1e-3)
             self.weights = Variable(weights_data.cuda(), requires_grad=True)
-        self._arch_parameters = [self.weights]
         self._arch_mask = torch.ones_like(self.weights)
         self.mask_alphas()
+        self.FI = 0
         self.FI_ewma = -1
         for rnn in self.rnns:
             rnn.weights = self.weights
 
-    def mask_alphas(self):
-        if self._crb:
-            with torch.no_grad():
-                for param, mask in zip(self._arch_parameters, self._arch_mask):
-                    mask[param <= 0.0] = 0.0
-                    param[param <= 0.0] = 0.0
-                    param.mul_(mask)
-
     def arch_parameters(self):
-        return self._arch_parameters
+        return [self.weights]
 
     def mask_alphas(self):
         if self._crb:
             with torch.no_grad():
-                for param, mask in zip(self._arch_parameters, self._arch_mask):
-                    mask[param <= 0.0] = 0.0
-                    param[param <= 0.0] = 0.0
-                    param.mul_(mask)
+                self._arch_mask[self.weights <= 0.0] = 0.0
+                self.weights[self.weights <= 0.0] = 0.0
+                self.weights.mul_(self._arch_mask)
 
     def _loss(self, hidden, input, target):
         log_prob, hidden_next = self(input, hidden, return_h=False)
@@ -141,7 +132,7 @@ class RNNModelSearch(RNNModel):
             end = start + i + 1
             W = probs[start:end].copy()
             edges = sorted(range(i + 1),
-                           key=lambda x: -max(W[x][k] for k in range(len(W[x])) if k != self.primitives.index('none')))
+                           key=lambda x: -max(W[x][k] for k in range(len(W[x])) if self.primitives[k] != "none"))
             for j in edges:
                 k_best = None
                 for k in range(len(W[j])):
@@ -157,3 +148,16 @@ class RNNModelSearch(RNNModel):
         gene = self._parse(self.activate(self.weights).data.cpu())
         genotype = Genotype(recurrent=gene, concat=range(STEPS + 1)[-CONCAT:])
         return genotype
+
+    def track_FI(self):
+        self.FI *= 0.0
+        for (n, p) in self.named_parameters():
+            self.FI += torch.sum(p.grad.data ** 2).cpu()
+
+        # self.FI_history.append(float(self.FI))
+
+        if self.FI_ewma == -1:
+            self.FI_ewma = self.FI
+        else:
+            self.FI_ewma = self._ewma * self.FI + (1 - self._ewma) * self.FI_ewma
+        # self.FI_ewma_history.append(float(self.FI_ewma))
