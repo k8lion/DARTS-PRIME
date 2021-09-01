@@ -275,7 +275,7 @@ def train(alpha_threshold):
         if batch % args.log_interval == 0 and batch > 0:
             logging.info(parallel_model.genotype())
             print(parallel_model.activate(parallel_model.weights))
-            cur_loss = total_loss[0] / args.log_interval
+            cur_loss = total_loss.item() / args.log_interval
             elapsed = time.time() - start_time
             logging.info('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
                          'loss {:5.2f} | ppl {:8.2f}'.format(
