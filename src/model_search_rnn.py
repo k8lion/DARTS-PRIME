@@ -99,7 +99,7 @@ class RNNModelSearch(RNNModel):
         self._arch_parameters = [self.weights]
         self._arch_mask = torch.ones_like(self.weights)
         self.mask_alphas()
-
+        self.FI_ewma = -1
         for rnn in self.rnns:
             rnn.weights = self.weights
 

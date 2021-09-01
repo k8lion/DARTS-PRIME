@@ -123,12 +123,13 @@ if torch.cuda.is_available():
         cudnn.enabled = True
         torch.cuda.manual_seed_all(args.seed)
 
-        if args.dyno_schedule:
-            args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
-        if args.dyno_split:
-            args.train_portion = 1 - 1 / (1 + args.schedfreq)
+if args.dyno_schedule:
+    args.threshold_divider = np.exp(-np.log(args.threshold_multiplier) * args.schedfreq)
+if args.dyno_split:
+    args.train_portion = 1 - 1 / (1 + args.schedfreq)
+alpha_threshold = args.init_alpha_threshold
 
-corpus = data.Corpus(os.path.join(utils.get_dir(), args.data), args.train_portion)
+corpus = data.Corpus(os.path.join(utils.get_dir(), args.data))
 
 eval_batch_size = 10
 test_batch_size = 1
@@ -186,7 +187,7 @@ def evaluate(data_source, batch_size=10):
     return total_loss[0] / len(data_source)
 
 
-def train():
+def train(alpha_threshold):
     assert args.batch_size % args.small_batch_size == 0, 'batch_size must be divisible by small_batch_size'
 
     # Turn on training mode which enables dropout.
@@ -196,6 +197,7 @@ def train():
     hidden = [model.init_hidden(args.small_batch_size) for _ in range(args.batch_size // args.small_batch_size)]
     hidden_valid = [model.init_hidden(args.small_batch_size) for _ in range(args.batch_size // args.small_batch_size)]
     batch, i = 0, 0
+    arch_step = False
     while i < train_data.size(0) - 1 - 1:
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
         # Prevent excessively small or negative sequence lengths
@@ -208,7 +210,15 @@ def train():
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
         model.train()
 
-        data_valid, targets_valid = get_batch(search_data, i % (search_data.size(0) - 1), args)
+        if (not args.dyno_schedule and (batch + 1) % int(args.schedfreq) == 0) or (
+                args.dyno_schedule and 0.0 < model.FI_ewma < alpha_threshold):
+            data_valid, targets_valid = get_batch(search_data, i % (search_data.size(0) - 1), args)
+            arch_step = True
+            if args.dyno_schedule:
+                alpha_threshold *= args.threshold_divider
+        elif args.dyno_schedule:
+            alpha_threshold *= args.threshold_multiplier
+
         data, targets = get_batch(train_data, i, args, seq_len=seq_len)
 
         optimizer.zero_grad()
@@ -216,20 +226,22 @@ def train():
         start, end, s_id = 0, args.small_batch_size, 0
         while start < args.batch_size:
             cur_data, cur_targets = data[:, start: end], targets[:, start: end].contiguous().view(-1)
-            cur_data_valid, cur_targets_valid = data_valid[:, start: end], targets_valid[:,
-                                                                           start: end].contiguous().view(-1)
+            if arch_step:
+                cur_data_valid, cur_targets_valid = data_valid[:, start: end], targets_valid[:,
+                                                                               start: end].contiguous().view(-1)
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
 
             hidden[s_id] = repackage_hidden(hidden[s_id])
-            hidden_valid[s_id] = repackage_hidden(hidden_valid[s_id])
+            if arch_step:
+                hidden_valid[s_id] = repackage_hidden(hidden_valid[s_id])
 
-            hidden_valid[s_id], grad_norm = architect.step(
-                hidden[s_id], cur_data, cur_targets,
-                hidden_valid[s_id], cur_data_valid, cur_targets_valid,
-                optimizer,
-                args.unrolled)
+                hidden_valid[s_id], grad_norm = architect.step(
+                    hidden[s_id], cur_data, cur_targets,
+                    hidden_valid[s_id], cur_data_valid, cur_targets_valid,
+                    optimizer,
+                    args.unrolled)
 
             # assuming small_batch_size = batch_size so we don't accumulate gradients
             optimizer.zero_grad()
@@ -262,7 +274,7 @@ def train():
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
             logging.info(parallel_model.genotype())
-            print(F.softmax(parallel_model.weights, dim=-1))
+            print(parallel_model.activate(parallel_model.weights))
             cur_loss = total_loss[0] / args.log_interval
             elapsed = time.time() - start_time
             logging.info('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
@@ -273,7 +285,7 @@ def train():
             start_time = time.time()
         batch += 1
         i += seq_len
-
+    return alpha_threshold
 
 # Loop over epochs.
 lr = args.lr
@@ -292,7 +304,7 @@ else:
 
 for epoch in range(1, args.epochs + 1):
     epoch_start_time = time.time()
-    train()
+    alpha_threshold = train(alpha_threshold)
 
     val_loss = evaluate(val_data, eval_batch_size)
     logging.info('-' * 89)
