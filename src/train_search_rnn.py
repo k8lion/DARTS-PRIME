@@ -226,6 +226,7 @@ def train(alpha_threshold):
 
         start, end, s_id = 0, args.small_batch_size, 0
         while start < args.batch_size:
+            model.tick(1 / (len(train_data) // args.bptt))
             cur_data, cur_targets = data[:, start: end], targets[:, start: end].contiguous().view(-1)
             if arch_step:
                 cur_data_valid, cur_targets_valid = data_valid[:, start: end], targets_valid[:,
@@ -260,6 +261,7 @@ def train(alpha_threshold):
             loss *= args.small_batch_size / args.batch_size
             total_loss += raw_loss.data * args.small_batch_size / args.batch_size
             loss.backward()
+            model.track_FI()
 
             s_id += 1
             start = end

@@ -120,6 +120,7 @@ class RNNModelSearch(RNNModel):
             for x in self._arch_parameters:
                 _, disc = self._parse(self.activate(x).detach().cpu().clone())
                 prox_reg = self.clock / self.total_epochs * self._rho / 2 * ((self.activate(x) - disc.cuda()).norm())
+                print(prox_reg)
                 loss += prox_reg
         return loss, hidden_next
 
