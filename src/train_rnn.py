@@ -22,7 +22,8 @@ from genotypes_rnn import *
 Genotype = Genotype_rnn
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank/WikiText2 Language Model')
-# parser.add_argument('--test', action='store_true', default=False, help='automatically run on test split')
+parser.add_argument('--convergence', type=int, default=20,
+                    help='convergence threshold (# of non-improving epochs)')
 parser.add_argument('--genotype_path', type=str, default='', help='path of search trial')
 parser.add_argument('--data', type=str, default='dataset/penn/',
                     help='location of the data corpus')
@@ -254,6 +255,8 @@ lr = args.lr
 best_val_loss = []
 stored_loss = 100000000
 
+convergence = 0
+
 # At any point you can hit Ctrl + C to break out of training early.
 try:
     if args.continue_train:
@@ -304,6 +307,7 @@ try:
                 save_checkpoint(model, optimizer, epoch, args.save)
                 logging.info('Saving Averaged!')
                 stored_loss = val_loss2
+                convergence = 0
 
             for prm in model.parameters():
                 prm.data = tmp[prm].clone()
@@ -320,6 +324,7 @@ try:
                 save_checkpoint(model, optimizer, epoch, args.save)
                 logging.info('Saving Normal!')
                 stored_loss = val_loss
+                convergence = 0
 
             if 't0' not in optimizer.param_groups[0] and (
                     len(best_val_loss) > args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
@@ -327,7 +332,11 @@ try:
                 optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
             best_val_loss.append(val_loss)
 
+        if convergence >= args.convergence:
+            raise KeyboardInterrupt
+
         epoch += 1
+        convergence += 1
 
 
 except KeyboardInterrupt:

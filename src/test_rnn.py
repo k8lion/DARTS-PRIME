@@ -1,5 +1,8 @@
 import argparse
 import math
+import os
+import logging
+import sys
 
 import numpy as np
 import torch
@@ -46,7 +49,7 @@ parser.add_argument('--cuda', action='store_false',
                     help='use CUDA')
 parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='report interval')
-parser.add_argument('--model_path', type=str, default='EXP/model.pt',
+parser.add_argument('--eval_path', type=str, default='eval',
                     help='path to load the pretrained model')
 parser.add_argument('--alpha', type=float, default=0,
                     help='alpha L2 regularization on RNN activation (alpha = 0 means no regularization)')
@@ -63,10 +66,14 @@ parser.add_argument('--max_seq_len_delta', type=int, default=20,
 parser.add_argument('--gpu', type=int, default=0, help='GPU device to use')
 args = parser.parse_args()
 
+args.eval_path = os.path.join(utils.get_dir(), args.eval_path)
 
-def logging(s, print_=True, log_=True):
-    print(s)
-
+log_format = '%(asctime)s %(message)s'
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, filemode='a',
+                    format=log_format, datefmt='%m/%d %I:%M:%S %p')
+fh = logging.FileHandler(os.path.join(args.eval_path, 'log.txt'))
+fh.setFormatter(logging.Formatter(log_format))
+logging.getLogger().addHandler(fh)
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -106,16 +113,16 @@ def evaluate(data_source, batch_size=10):
 
 
 # Load the best saved model.
-model = torch.load(args.model_path)
+model = torch.load(os.path.join(args.eval_path, "model.pt"))
 
 total_params = sum(x.data.nelement() for x in model.parameters())
-logging('Args: {}'.format(args))
-logging('Model total parameters: {}'.format(total_params))
+logging.info('Args: {}'.format(args))
+logging.info('Model total parameters: {}'.format(total_params))
 parallel_model = model.cuda()
 
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)
-logging('=' * 89)
-logging('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
+logging.info('=' * 89)
+logging.info('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
     test_loss, math.exp(test_loss)))
-logging('=' * 89)
+logging.info('=' * 89)
