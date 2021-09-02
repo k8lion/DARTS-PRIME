@@ -135,14 +135,14 @@ class RNNModelSearch(RNNModel):
             W = probs[start:end].copy()
             edges = sorted(range(i + 1),
                            key=lambda x: -max(W[x][k] for k in range(len(W[x])) if self.primitives[k] != "none"))
-            for j in edges:
-                k_best = None
-                for k in range(len(W[j])):
-                    if self.primitives[k] != "none":
-                        if k_best is None or W[j][k] > W[j][k_best]:
-                            k_best = k
-                gene.append((self.primitives[k_best], j))
-                z[j + start, k_best] = 1.0
+            j = edges[0]
+            k_best = None
+            for k in range(len(W[j])):
+                if self.primitives[k] != "none":
+                    if k_best is None or W[j][k] > W[j][k_best]:
+                        k_best = k
+            gene.append((self.primitives[k_best], j))
+            z[j + start, k_best] = 1.0
             start = end
         return gene, z
 
