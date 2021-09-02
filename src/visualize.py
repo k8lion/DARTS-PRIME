@@ -2,7 +2,7 @@ import os
 
 from graphviz import Digraph
 
-from utils import COLORMAP
+from utils import COLORMAP, COLORMAP_RNN
 
 # old version of visualize
 
@@ -15,8 +15,47 @@ ABBREV = {
     'dil_conv_3x3': 'DIL3',
     'dil_conv_5x5': 'DIL5'
 }
+
+ABBREV_RNN = {
+    'tanh': "TANH",
+    'relu': "RELU",
+    'sigmoid': "SIGM",
+    'identity': "IDEN"
+}
+
+
 def plot_rnn(genotype, filename):
-    return
+    g = Digraph(
+        format='png',
+        edge_attr=dict(fontsize='40', fontname="times", penwidth='4.5'),
+        node_attr=dict(style='filled', shape='rect', align='center', fontsize='40', height='1.0', width='1.0',
+                       penwidth='4.5', fontname="times"),
+        engine='dot')
+    g.body.extend(['rankdir=LR'])
+
+    g.node("x_{t}", fillcolor='darkseagreen2')
+    g.node("h_{t-1}", fillcolor='darkseagreen2')
+    g.node("0", fillcolor='lightblue')
+    g.edge("x_{t}", "0", fillcolor="gray")
+    g.edge("h_{t-1}", "0", fillcolor="gray")
+    steps = len(genotype)
+    print(genotype)
+
+    for i in range(1, steps + 1):
+        g.node(str(i), fillcolor='lightblue')
+
+    for i, (op, j) in enumerate(genotype):
+        print(i, j, op)
+        g.edge(str(j), str(i + 1), label=ABBREV_RNN[op],
+               color="#%02x%02x%02x" % tuple([int(x * 256) for x in COLORMAP_RNN[op][0:3]]))
+
+    g.node("h_{t}", fillcolor='palegoldenrod')
+    for i in range(steps):
+        g.edge(str(i), "h_{t}", style="dashed")
+
+    g.render(filename, view=False)
+    print(filename)
+
 
 def plot(genotype, filename):
     g = Digraph(

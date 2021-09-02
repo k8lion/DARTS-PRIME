@@ -169,6 +169,8 @@ def create_exp_dir(path, scripts_to_save=None):
 
 blue = plt.get_cmap("Blues")
 orange = plt.get_cmap("Oranges")
+red = plt.get_cmap("Reds")
+green = plt.get_cmap("Greens")
 grey = plt.get_cmap("Greys")
 COLORMAP = {
     'none': grey(0.8),
@@ -179,6 +181,13 @@ COLORMAP = {
     'sep_conv_5x5': blue(0.5),
     'dil_conv_3x3': blue(0.7),
     'dil_conv_5x5': blue(0.9)
+}
+
+COLORMAP_RNN = {
+    'tanh': green(0.6),
+    'relu': blue(0.6),
+    'sigmoid': red(0.6),
+    'identity': grey(0.6)
 }
 
 NODE_LABELS = {
