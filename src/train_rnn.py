@@ -15,7 +15,7 @@ import torch.nn.functional as F
 
 import data
 import model_rnn
-from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint
+from utils_rnn import batchify, get_batch, repackage_hidden, save_checkpoint, save_checkpoint_epoch
 import utils
 from genotypes_rnn import *
 
@@ -288,6 +288,9 @@ try:
 
             epoch = torch.load(os.path.join(args.save, 'misc.pt'))['epoch']
             continue
+
+        if epoch % 200 == 0:
+            save_checkpoint_epoch(model, optimizer, epoch, args.save)
 
         if 't0' in optimizer.param_groups[0]:
             tmp = {}

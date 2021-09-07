@@ -52,6 +52,16 @@ def save_checkpoint(model, optimizer, epoch, path, finetune=False):
     torch.save({'epoch': epoch + 1}, os.path.join(path, 'misc.pt'))
 
 
+def save_checkpoint_epoch(model, optimizer, epoch, path, finetune=False):
+    if finetune:
+        torch.save(model, os.path.join(path, 'finetune_model.pt'))
+        torch.save(optimizer.state_dict(), os.path.join(path, 'finetune_optimizer.pt'))
+    else:
+        torch.save(model, os.path.join(path, 'model' + str(epoch) + '.pt'))
+        torch.save(optimizer.state_dict(), os.path.join(path, 'optimizer' + str(epoch) + '.pt'))
+    torch.save({'epoch': epoch + 1}, os.path.join(path, 'misc.pt'))
+
+
 def embedded_dropout(embed, words, dropout=0.1, scale=None):
     if dropout:
         mask = embed.weight.data.new().resize_((embed.weight.size(0), 1)).bernoulli_(1 - dropout).expand_as(
