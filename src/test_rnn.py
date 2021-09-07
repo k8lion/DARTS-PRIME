@@ -71,7 +71,7 @@ args.eval_path = os.path.join(utils.get_dir(), "exp", args.eval_path)
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, filemode='a',
                     format=log_format, datefmt='%m/%d %I:%M:%S %p')
-fh = logging.FileHandler(os.path.join(args.eval_path, 'log.txt'))
+fh = logging.FileHandler(os.path.join(args.eval_path, 'testlog.txt'))
 fh.setFormatter(logging.Formatter(log_format))
 logging.getLogger().addHandler(fh)
 
