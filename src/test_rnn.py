@@ -66,7 +66,7 @@ parser.add_argument('--max_seq_len_delta', type=int, default=20,
 parser.add_argument('--gpu', type=int, default=0, help='GPU device to use')
 args = parser.parse_args()
 
-args.eval_path = os.path.join(utils.get_dir(), args.eval_path)
+args.eval_path = os.path.join(utils.get_dir(), "exp", args.eval_path)
 
 log_format = '%(asctime)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, filemode='a',
