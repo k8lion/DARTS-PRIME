@@ -113,7 +113,10 @@ def evaluate(data_source, batch_size=10):
 
 
 # Load the best saved model.
-model = torch.load(os.path.join(args.eval_path, "model.pt"))
+if "model.pt" in args.eval_path:
+    model = torch.load(args.eval_path)
+else:
+    model = torch.load(os.path.join(args.eval_path, "model.pt"))
 
 total_params = sum(x.data.nelement() for x in model.parameters())
 logging.info('Args: {}'.format(args))
